@@ -195,7 +195,6 @@ function Plantillas() {
   return (
     <div className="min-h-screen bg-[#f6f8fb] px-4 py-6 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-[1500px]">
-        {/* HEADER */}
         <header className="mb-7 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-blue-600">
@@ -238,7 +237,6 @@ function Plantillas() {
           </div>
         </header>
 
-        {/* ESTADÍSTICAS */}
         <section className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
           <StatCard
             icon={<FiArchive size={18} />}
@@ -272,10 +270,8 @@ function Plantillas() {
           />
         </section>
 
-        {/* FILTROS */}
         <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-center">
-            {/* BUSCADOR */}
             <div className="relative min-w-0 flex-1">
               <FiSearch
                 size={18}
@@ -291,7 +287,6 @@ function Plantillas() {
               />
             </div>
 
-            {/* TIPO */}
             <select
               value={typeFilter}
               onChange={(event) => setTypeFilter(event.target.value)}
@@ -304,7 +299,6 @@ function Plantillas() {
               ))}
             </select>
 
-            {/* ESTADO */}
             <select
               value={statusFilter}
               onChange={(event) => setStatusFilter(event.target.value)}
@@ -327,7 +321,6 @@ function Plantillas() {
           </div>
         </section>
 
-        {/* ERROR */}
         {error && (
           <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-red-100 bg-red-50 p-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -348,7 +341,6 @@ function Plantillas() {
           </div>
         )}
 
-        {/* RESULTADOS */}
         {!loading && filteredTemplates.length > 0 && (
           <div className="mb-4 flex items-center justify-between">
             <div>
@@ -364,7 +356,6 @@ function Plantillas() {
           </div>
         )}
 
-        {/* LOADING */}
         {loading ? (
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
             {Array.from({ length: 6 }).map((_, index) => (
@@ -433,10 +424,6 @@ function Plantillas() {
   );
 }
 
-/* =========================================================
-   STAT CARD
-========================================================= */
-
 function StatCard({
   icon,
   label,
@@ -483,10 +470,6 @@ function StatCard({
   );
 }
 
-/* =========================================================
-   TEMPLATE CARD
-========================================================= */
-
 function TemplateCard({
   template,
   menuOpen,
@@ -512,7 +495,6 @@ function TemplateCard({
 }) {
   return (
     <article className="group relative overflow-visible rounded-2xl border border-slate-200 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-200/60">
-      {/* CABECERA */}
       <div className="border-b border-slate-100 p-5">
         <div className="mb-4 flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
@@ -536,7 +518,6 @@ function TemplateCard({
             </div>
           </div>
 
-          {/* MENÚ */}
           <div className="relative shrink-0">
             <button
               type="button"
@@ -608,7 +589,6 @@ function TemplateCard({
           </div>
         </div>
 
-        {/* BADGES */}
         <div className="flex flex-wrap items-center gap-2">
           <span
             className={`rounded-full px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide ${
@@ -634,14 +614,12 @@ function TemplateCard({
         </div>
       </div>
 
-      {/* CONTENIDO */}
       <div className="p-5">
         <p className="min-h-[48px] text-sm leading-6 text-slate-500">
           {template.description ||
             "Plantilla reutilizable para crear propuestas de viaje."}
         </p>
 
-        {/* INFORMACIÓN */}
         <div className="mt-5 grid grid-cols-2 gap-3">
           <InfoItem
             icon={<FiCalendar size={15} />}
@@ -660,7 +638,6 @@ function TemplateCard({
           />
         </div>
 
-        {/* ACTIVIDADES */}
         {template.activities?.length > 0 && (
           <div className="mt-5 flex flex-wrap gap-1.5">
             {template.activities.slice(0, 3).map((activity, index) => (
@@ -680,7 +657,6 @@ function TemplateCard({
           </div>
         )}
 
-        {/* VER */}
         <button
           type="button"
           onClick={onView}
@@ -693,10 +669,6 @@ function TemplateCard({
     </article>
   );
 }
-
-/* =========================================================
-   INFO ITEM
-========================================================= */
 
 function InfoItem({
   icon,
@@ -718,10 +690,6 @@ function InfoItem({
     </div>
   );
 }
-
-/* =========================================================
-   EMPTY STATE
-========================================================= */
 
 function EmptyState({
   hasFilters,

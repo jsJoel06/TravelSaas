@@ -1,4 +1,5 @@
-import { FormEvent, useState } from "react";
+import { useState } from "react";
+import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FiArrowLeft,
@@ -59,7 +60,7 @@ export default function NuevoDestino() {
 
   const updateField = <K extends keyof DestinationInput>(
     field: K,
-    value: DestinationInput[K]
+    value: DestinationInput[K],
   ) => {
     setForm((current) => ({
       ...current,
@@ -87,11 +88,8 @@ export default function NuevoDestino() {
 
   const addItem = (
     value: string,
-    field:
-      | "main_activities"
-      | "featured_places"
-      | "practical_information",
-    clear: () => void
+    field: "main_activities" | "featured_places" | "practical_information",
+    clear: () => void,
   ) => {
     const cleanValue = value.trim();
 
@@ -102,7 +100,7 @@ export default function NuevoDestino() {
 
       if (
         currentItems.some(
-          (item) => item.toLowerCase() === cleanValue.toLowerCase()
+          (item) => item.toLowerCase() === cleanValue.toLowerCase(),
         )
       ) {
         return current;
@@ -118,15 +116,14 @@ export default function NuevoDestino() {
   };
 
   const removeItem = (
-    field:
-      | "main_activities"
-      | "featured_places"
-      | "practical_information",
-    index: number
+    field: "main_activities" | "featured_places" | "practical_information",
+    index: number,
   ) => {
     setForm((current) => ({
       ...current,
-      [field]: (current[field] ?? []).filter((_, itemIndex) => itemIndex !== index),
+      [field]: (current[field] ?? []).filter(
+        (_, itemIndex) => itemIndex !== index,
+      ),
     }));
   };
 
@@ -161,9 +158,7 @@ export default function NuevoDestino() {
     } catch (err) {
       console.error(err);
       setError(
-        err instanceof Error
-          ? err.message
-          : "No se pudo crear el destino."
+        err instanceof Error ? err.message : "No se pudo crear el destino.",
       );
     } finally {
       setSaving(false);
@@ -193,8 +188,8 @@ export default function NuevoDestino() {
           </h1>
 
           <p className="max-w-2xl text-sm leading-6 text-slate-500">
-            Registra la información que utilizará Achuen Travel para orientar
-            a sus clientes y que NIA pueda utilizar como contexto.
+            Registra la información que utilizará Achuen Travel para orientar a
+            sus clientes y que NIA pueda utilizar como contexto.
           </p>
         </div>
 
@@ -298,10 +293,7 @@ export default function NuevoDestino() {
                         }`}
                       >
                         {selected && (
-                          <FiCheck
-                            size={13}
-                            className="mr-1.5 inline-block"
-                          />
+                          <FiCheck size={13} className="mr-1.5 inline-block" />
                         )}
                         {type}
                       </button>
@@ -326,7 +318,7 @@ export default function NuevoDestino() {
                             "recommended_days",
                             event.target.value
                               ? Number(event.target.value)
-                              : null
+                              : null,
                           )
                         }
                         className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 pr-16 text-sm font-semibold text-slate-700 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
@@ -369,7 +361,7 @@ export default function NuevoDestino() {
                 items={form.main_activities ?? []}
                 onAdd={() =>
                   addItem(activityInput, "main_activities", () =>
-                    setActivityInput("")
+                    setActivityInput(""),
                   )
                 }
                 onRemove={(index) => removeItem("main_activities", index)}
@@ -384,7 +376,7 @@ export default function NuevoDestino() {
                 items={form.featured_places ?? []}
                 onAdd={() =>
                   addItem(placeInput, "featured_places", () =>
-                    setPlaceInput("")
+                    setPlaceInput(""),
                   )
                 }
                 onRemove={(index) => removeItem("featured_places", index)}
@@ -399,12 +391,10 @@ export default function NuevoDestino() {
                 items={form.practical_information ?? []}
                 onAdd={() =>
                   addItem(infoInput, "practical_information", () =>
-                    setInfoInput("")
+                    setInfoInput(""),
                   )
                 }
-                onRemove={(index) =>
-                  removeItem("practical_information", index)
-                }
+                onRemove={(index) => removeItem("practical_information", index)}
               />
             </div>
 
@@ -454,8 +444,8 @@ export default function NuevoDestino() {
                   />
 
                   <p className="mt-2 text-[10px] leading-4 text-slate-400">
-                    Por ahora usamos una URL. Después podemos conectar
-                    Supabase Storage para subir imágenes directamente.
+                    Por ahora usamos una URL. Después podemos conectar Supabase
+                    Storage para subir imágenes directamente.
                   </p>
                 </div>
               </section>
@@ -468,8 +458,8 @@ export default function NuevoDestino() {
                     </h3>
 
                     <p className="mt-1 text-xs leading-5 text-slate-400">
-                      Los destinos activos pueden utilizarse como contexto
-                      para NIA.
+                      Los destinos activos pueden utilizarse como contexto para
+                      NIA.
                     </p>
                   </div>
 
@@ -500,9 +490,7 @@ export default function NuevoDestino() {
                       form.active ? "text-emerald-700" : "text-slate-500"
                     }`}
                   >
-                    {form.active
-                      ? "Destino activo"
-                      : "Destino inactivo"}
+                    {form.active ? "Destino activo" : "Destino inactivo"}
                   </p>
                 </div>
               </section>
@@ -581,9 +569,7 @@ function SectionHeader({
 
       <div>
         <h2 className="text-sm font-extrabold text-slate-800">{title}</h2>
-        <p className="mt-1 text-xs leading-5 text-slate-400">
-          {description}
-        </p>
+        <p className="mt-1 text-xs leading-5 text-slate-400">{description}</p>
       </div>
     </div>
   );
@@ -702,4 +688,3 @@ function ListSection({
     </section>
   );
 }
-

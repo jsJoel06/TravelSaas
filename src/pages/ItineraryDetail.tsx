@@ -4,7 +4,6 @@ import type { ReactNode } from "react";
 import {
   FiArrowLeft,
   FiCalendar,
-  FiCheck,
   FiChevronRight,
   FiClock,
   FiDollarSign,

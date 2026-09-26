@@ -3,11 +3,8 @@ import {
   FaBars,
   FaBell,
   FaChevronDown,
-  FaUserCircle,
   FaSignOutAlt,
   FaCog,
-  FaCheck,
-  FaTimes,
   FaPlaneDeparture,
 } from "react-icons/fa";
 import { useLocation, useNavigate } from "react-router-dom";

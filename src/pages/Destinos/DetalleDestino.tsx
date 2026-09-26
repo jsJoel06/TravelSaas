@@ -12,7 +12,6 @@ import {
   FiMapPin,
   FiMessageCircle,
   FiPlus,
-  FiRefreshCw,
   FiStar,
   FiUsers,
 } from "react-icons/fi";

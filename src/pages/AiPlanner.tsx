@@ -28,6 +28,7 @@ import {
   FiHeart,
   FiCopy,
   FiCheck,
+  FiPackage,
 } from "react-icons/fi";
 import {
   generateItineraryWithAI,
