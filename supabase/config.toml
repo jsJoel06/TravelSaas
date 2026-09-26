@@ -1,0 +1,33 @@
+
+[functions.generate-itinerary]
+enabled = true
+verify_jwt = false
+import_map = "./functions/generate-itinerary/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/generate-itinerary/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/generate-itinerary/*.html" ]
+
+[functions.search-travel-offers]
+enabled = true
+verify_jwt = false
+import_map = "./functions/search-travel-offers/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/search-travel-offers/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/search-travel-offers/*.html" ]
+
+[functions.extract-trip-requirements]
+enabled = true
+verify_jwt = false
+import_map = "./functions/extract-trip-requirements/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/extract-trip-requirements/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/extract-trip-requirements/*.html" ]
