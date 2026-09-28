@@ -11,6 +11,12 @@ export interface RegisterData {
 }
 
 // =========================================================
+// URL DE PRODUCCIÓN
+// =========================================================
+
+const APP_URL = "https://travel-saas-navy.vercel.app";
+
+// =========================================================
 // REGISTRAR USUARIO
 // =========================================================
 
@@ -22,6 +28,18 @@ export const registerUser = async ({
   const cleanEmail = email.trim().toLowerCase();
   const cleanName = fullName.trim();
 
+  if (!cleanName) {
+    throw new Error("Ingresa tu nombre completo.");
+  }
+
+  if (!cleanEmail) {
+    throw new Error("Ingresa tu correo electrónico.");
+  }
+
+  if (!password || password.length < 6) {
+    throw new Error("La contraseña debe tener al menos 6 caracteres.");
+  }
+
   const { data, error } = await supabase.auth.signUp({
     email: cleanEmail,
     password,
@@ -30,8 +48,9 @@ export const registerUser = async ({
         full_name: cleanName,
       },
 
-      // Cuando confirme su cuenta por correo:
-      emailRedirectTo: "https://travel-saas-navy.vercel.app/login",
+      // Al confirmar el correo, Supabase enviará al usuario
+      // a la aplicación publicada en Vercel.
+      emailRedirectTo: `${APP_URL}/login`,
     },
   });
 
@@ -46,8 +65,19 @@ export const registerUser = async ({
 // INICIAR SESIÓN
 // =========================================================
 
-export const loginUser = async (email: string, password: string) => {
+export const loginUser = async (
+  email: string,
+  password: string,
+) => {
   const cleanEmail = email.trim().toLowerCase();
+
+  if (!cleanEmail) {
+    throw new Error("Ingresa tu correo electrónico.");
+  }
+
+  if (!password) {
+    throw new Error("Ingresa tu contraseña.");
+  }
 
   const { data, error } = await supabase.auth.signInWithPassword({
     email: cleanEmail,
@@ -101,12 +131,12 @@ export const forgotPassword = async (email: string) => {
     throw new Error("Ingresa tu correo electrónico.");
   }
 
-  const redirectTo =
-    "https://travel-saas-navy.vercel.app/reset-password";
-
-  const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
-    redirectTo,
-  });
+  const { error } = await supabase.auth.resetPasswordForEmail(
+    cleanEmail,
+    {
+      redirectTo: `${APP_URL}/reset-password`,
+    },
+  );
 
   if (error) {
     throw error;
@@ -123,7 +153,9 @@ export const resetPassword = async (newPassword: string) => {
   }
 
   if (newPassword.length < 6) {
-    throw new Error("La contraseña debe tener al menos 6 caracteres.");
+    throw new Error(
+      "La contraseña debe tener al menos 6 caracteres.",
+    );
   }
 
   const { data, error } = await supabase.auth.updateUser({
