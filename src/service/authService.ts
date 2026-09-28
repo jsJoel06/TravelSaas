@@ -29,6 +29,9 @@ export const registerUser = async ({
       data: {
         full_name: cleanName,
       },
+
+      // Cuando confirme su cuenta por correo:
+      emailRedirectTo: "https://travel-saas-navy.vercel.app/login",
     },
   });
 
@@ -98,7 +101,8 @@ export const forgotPassword = async (email: string) => {
     throw new Error("Ingresa tu correo electrónico.");
   }
 
-  const redirectTo = `https://travel-saas-navy.vercel.app/reset-password`;
+  const redirectTo =
+    "https://travel-saas-navy.vercel.app/reset-password";
 
   const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
     redirectTo,
