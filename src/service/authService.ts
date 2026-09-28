@@ -98,7 +98,7 @@ export const forgotPassword = async (email: string) => {
     throw new Error("Ingresa tu correo electrónico.");
   }
 
-  const redirectTo = `${window.location.origin}/reset-password`;
+  const redirectTo = `https://travel-saas-navy.vercel.app/reset-password`;
 
   const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
     redirectTo,

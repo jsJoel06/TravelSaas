@@ -1,6 +1,7 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { useNavigate } from "react-router-dom";
+import jsPDF from "jspdf";
 
 import {
   FiActivity,
@@ -40,6 +41,11 @@ import {
 } from "../service/aiService";
 
 import { extractTripRequirements } from "../service/tripRequirementsService";
+import { getSettings } from "../service/configurationService";
+import {
+  searchTravelImage,
+  type TravelImage,
+} from "../service/travelImageService";
 
 const examples = [
   {
@@ -87,6 +93,25 @@ export default function AiPlanner() {
   const [customTitle, setCustomTitle] = useState("");
 
   const [agencyName, setAgencyName] = useState("");
+
+  // Usa exactamente el mismo nombre guardado en Configuración > Agencia.
+  useEffect(() => {
+    let active = true;
+
+    const loadAgencyName = async () => {
+      try {
+        const settings = await getSettings();
+        if (active) setAgencyName(settings.agency.name?.trim() || "");
+      } catch (agencyError) {
+        console.warn("No se pudo cargar el nombre de la agencia:", agencyError);
+      }
+    };
+
+    void loadAgencyName();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const [accentStyle, setAccentStyle] = useState<"rose" | "soft" | "classic">(
     "rose",
@@ -610,6 +635,14 @@ function ProposalWorkspace({
 }) {
   const [selectedDay, setSelectedDay] = useState(0);
 
+  const [activityImages, setActivityImages] = useState<
+    Record<string, TravelImage | null>
+  >({});
+
+  const [loadingImages, setLoadingImages] = useState<Record<string, boolean>>(
+    {},
+  );
+
   const day = proposal.days[selectedDay] ?? proposal.days[0];
 
   const budget = proposal.budget;
@@ -619,6 +652,108 @@ function ProposalWorkspace({
   const destinationGuide = proposal.destination_guide;
 
   const interests = clientAnalysis?.main_interests ?? [];
+
+  // Caché local para no repetir búsquedas ni perder respuestas por re-renderizados.
+  const imageCacheRef = useRef<Record<string, TravelImage | null>>({});
+  const imageRequestsRef = useRef<Record<string, Promise<TravelImage | null>>>(
+    {},
+  );
+
+  useEffect(() => {
+    if (!day?.activities?.length) return;
+
+    let active = true;
+
+    const activities = day.activities.map((activity, index) => ({
+      activity,
+      key: `${day.day_number}-${index}-${activity.title}`,
+      searchKey: `${activity.title}::${activity.location || ""}`.toLowerCase(),
+    }));
+
+    // Mostrar inmediatamente cualquier imagen que ya esté en caché.
+    setActivityImages((current) => {
+      const next = { ...current };
+      let changed = false;
+
+      activities.forEach(({ key, searchKey }) => {
+        if (
+          Object.prototype.hasOwnProperty.call(imageCacheRef.current, searchKey)
+        ) {
+          const cachedImage = imageCacheRef.current[searchKey];
+          if (next[key] !== cachedImage) {
+            next[key] = cachedImage;
+            changed = true;
+          }
+        }
+      });
+
+      return changed ? next : current;
+    });
+
+    const pending = activities.filter(
+      ({ searchKey }) =>
+        !Object.prototype.hasOwnProperty.call(imageCacheRef.current, searchKey),
+    );
+
+    if (!pending.length) return;
+
+    setLoadingImages((current) => {
+      const next = { ...current };
+      pending.forEach(({ key }) => {
+        next[key] = true;
+      });
+      return next;
+    });
+
+    const loadImages = async () => {
+      const results = await Promise.all(
+        pending.map(async ({ activity, key, searchKey }) => {
+          let request = imageRequestsRef.current[searchKey];
+
+          if (!request) {
+            request = searchTravelImage(activity.title, activity.location);
+            imageRequestsRef.current[searchKey] = request;
+          }
+
+          try {
+            const image = await request;
+            imageCacheRef.current[searchKey] = image;
+            return { key, image };
+          } catch (error) {
+            console.error("Error cargando imagen de actividad:", error);
+            imageCacheRef.current[searchKey] = null;
+            return { key, image: null };
+          } finally {
+            delete imageRequestsRef.current[searchKey];
+          }
+        }),
+      );
+
+      if (!active) return;
+
+      setActivityImages((current) => {
+        const next = { ...current };
+        results.forEach(({ key, image }) => {
+          next[key] = image;
+        });
+        return next;
+      });
+
+      setLoadingImages((current) => {
+        const next = { ...current };
+        pending.forEach(({ key }) => {
+          delete next[key];
+        });
+        return next;
+      });
+    };
+
+    void loadImages();
+
+    return () => {
+      active = false;
+    };
+  }, [day]);
 
   const activityIcon = (type?: string) => {
     const value = (type || "").toLowerCase();
@@ -815,75 +950,94 @@ function ProposalWorkspace({
                 <div className="absolute bottom-6 left-[23px] top-6 w-px bg-gradient-to-b from-rose-200 via-rose-100 to-transparent" />
 
                 <div className="space-y-3">
-                  {day.activities.map((activity, index) => (
-                    <div
-                      key={`${day.day_number}-${index}`}
-                      className="group relative grid grid-cols-[48px_minmax(0,1fr)] gap-4"
-                    >
-                      <div className="relative z-10 flex h-12 w-12 items-center justify-center rounded-2xl border border-rose-100 bg-white text-lg text-rose-500 shadow-sm transition group-hover:border-rose-200 group-hover:bg-rose-50">
-                        {activityIcon(activity.type)}
-                      </div>
+                  {day.activities.map((activity, index) => {
+                    const imageKey = `${day.day_number}-${index}-${activity.title}`;
+                    const activityImage = activityImages[imageKey];
+                    const imageLoading = loadingImages[imageKey];
 
-                      <div className="rounded-[20px] border border-transparent p-4 transition group-hover:border-[#f3e3e5] group-hover:bg-[#fffafa]">
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                          <div className="min-w-0">
-                            <div className="flex flex-wrap items-center gap-2">
-                              {activity.start_time && (
-                                <span className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-600">
-                                  <FiActivity />
-                                  {formatTime(activity.start_time)}
-                                  {activity.end_time
-                                    ? ` – ${formatTime(activity.end_time)}`
-                                    : ""}
-                                </span>
-                              )}
-
-                              {activity.type && (
-                                <span className="rounded-lg bg-rose-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-rose-500">
-                                  {activity.type}
-                                </span>
-                              )}
-                            </div>
-
-                            <h3 className="mt-2 text-base font-black text-slate-900">
-                              {activity.title}
-                            </h3>
-
-                            <p className="mt-1.5 max-w-3xl text-sm leading-6 text-slate-500">
-                              {activity.description}
-                            </p>
-
-                            {activity.location && (
-                              <p className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-slate-400">
-                                <FiMapPin className="text-rose-400" />
-                                {activity.location}
-                              </p>
-                            )}
-                          </div>
-
-                          {activity.estimated_cost != null && (
-                            <div className="shrink-0 rounded-xl bg-emerald-50 px-3 py-2 text-right">
-                              <p className="text-[9px] font-black uppercase tracking-wide text-emerald-600/60">
-                                Estimado
-                              </p>
-                              <p className="text-sm font-black text-emerald-700">
-                                {formatBudget(
-                                  activity.estimated_cost,
-                                  budget?.currency,
-                                )}
-                              </p>
+                    return (
+                      <div
+                        key={`${day.day_number}-${index}`}
+                        className="group relative grid grid-cols-[72px_minmax(0,1fr)] gap-4"
+                      >
+                        <div className="relative z-10 h-[72px] w-[72px] overflow-hidden rounded-2xl border border-rose-100 bg-white shadow-sm">
+                          {activityImage?.url ? (
+                            <img
+                              src={activityImage.url}
+                              alt={activityImage.alt || activity.title}
+                              className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                              loading="lazy"
+                            />
+                          ) : imageLoading ? (
+                            <div className="h-full w-full animate-pulse bg-rose-50" />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center text-lg text-rose-500">
+                              {activityIcon(activity.type)}
                             </div>
                           )}
                         </div>
 
-                        {activity.needs_verification && (
-                          <div className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-amber-50 px-2.5 py-1.5 text-[10px] font-bold text-amber-700">
-                            <FiAlertTriangle /> Verificar antes de confirmar
+                        <div className="rounded-[20px] border border-transparent p-4 transition group-hover:border-[#f3e3e5] group-hover:bg-[#fffafa]">
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                {activity.start_time && (
+                                  <span className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-600">
+                                    <FiActivity />
+                                    {formatTime(activity.start_time)}
+                                    {activity.end_time
+                                      ? ` – ${formatTime(activity.end_time)}`
+                                      : ""}
+                                  </span>
+                                )}
+
+                                {activity.type && (
+                                  <span className="rounded-lg bg-rose-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-rose-500">
+                                    {activity.type}
+                                  </span>
+                                )}
+                              </div>
+
+                              <h3 className="mt-2 text-base font-black text-slate-900">
+                                {activity.title}
+                              </h3>
+
+                              <p className="mt-1.5 max-w-3xl text-sm leading-6 text-slate-500">
+                                {activity.description}
+                              </p>
+
+                              {activity.location && (
+                                <p className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-slate-400">
+                                  <FiMapPin className="text-rose-400" />
+                                  {activity.location}
+                                </p>
+                              )}
+                            </div>
+
+                            {activity.estimated_cost != null && (
+                              <div className="shrink-0 rounded-xl bg-emerald-50 px-3 py-2 text-right">
+                                <p className="text-[9px] font-black uppercase tracking-wide text-emerald-600/60">
+                                  Estimado
+                                </p>
+                                <p className="text-sm font-black text-emerald-700">
+                                  {formatBudget(
+                                    activity.estimated_cost,
+                                    budget?.currency,
+                                  )}
+                                </p>
+                              </div>
+                            )}
                           </div>
-                        )}
+
+                          {activity.needs_verification && (
+                            <div className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-amber-50 px-2.5 py-1.5 text-[10px] font-bold text-amber-700">
+                              <FiAlertTriangle /> Verificar antes de confirmar
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             ) : (
@@ -1352,9 +1506,505 @@ function ReviewStep({
   copied: boolean;
 }) {
   const finalTitle = customTitle.trim() || proposal.title;
+  const [generatingPdf, setGeneratingPdf] = useState(false);
 
-  const printPdf = () => {
+  const printProposal = () => {
     window.print();
+  };
+
+  const downloadPdf = async () => {
+    if (generatingPdf) return;
+
+    try {
+      setGeneratingPdf(true);
+
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+      });
+
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 16;
+      const contentWidth = pageWidth - margin * 2;
+      const bottomLimit = pageHeight - 16;
+      let y = 18;
+
+      const rose: [number, number, number] = [233, 84, 125];
+      const dark: [number, number, number] = [30, 41, 59];
+      const muted: [number, number, number] = [100, 116, 139];
+      const lightRose: [number, number, number] = [255, 241, 244];
+
+      // Dibujos vectoriales de viaje: funcionan nativamente en jsPDF.
+      const drawGlobe = (cx: number, cy: number, r = 5) => {
+        pdf.setDrawColor(...rose);
+        pdf.setLineWidth(0.55);
+        pdf.circle(cx, cy, r);
+        pdf.ellipse(cx, cy, r * 0.45, r);
+        pdf.line(cx - r, cy, cx + r, cy);
+        pdf.line(cx - r * 0.85, cy - r * 0.5, cx + r * 0.85, cy - r * 0.5);
+        pdf.line(cx - r * 0.85, cy + r * 0.5, cx + r * 0.85, cy + r * 0.5);
+      };
+
+      const drawPlane = (x: number, py: number, scale = 1) => {
+        pdf.setDrawColor(...rose);
+        pdf.setLineWidth(0.7);
+        pdf.line(x, py, x + 13 * scale, py - 4 * scale);
+        pdf.line(x + 13 * scale, py - 4 * scale, x + 9 * scale, py + 1 * scale);
+        pdf.line(x + 9 * scale, py + 1 * scale, x + 5 * scale, py + 2 * scale);
+        pdf.line(x + 5 * scale, py + 2 * scale, x + 7 * scale, py - 1 * scale);
+        pdf.line(x + 7 * scale, py - 1 * scale, x + 2 * scale, py - 3 * scale);
+        pdf.line(x + 2 * scale, py - 3 * scale, x + 5 * scale, py);
+      };
+
+      const drawRoute = (x1: number, routeY: number, x2: number) => {
+        pdf.setDrawColor(244, 190, 204);
+        pdf.setLineDashPattern([1.4, 1.4], 0);
+        pdf.line(x1, routeY, x2, routeY);
+        pdf.setLineDashPattern([], 0);
+        pdf.setFillColor(...rose);
+        pdf.circle(x1, routeY, 1.2, "F");
+        pdf.circle(x2, routeY, 1.2, "F");
+      };
+
+      // Fondo decorativo suave para que el PDF no se vea vacío.
+      // Todo es vectorial: no depende de HTML, Tailwind ni html2canvas.
+      const drawPageBackground = () => {
+        // Base cálida muy clara.
+        pdf.setFillColor(255, 250, 250);
+        pdf.rect(0, 0, pageWidth, pageHeight, "F");
+
+        // Grandes formas suaves en las esquinas.
+        pdf.setFillColor(255, 239, 243);
+        pdf.circle(pageWidth + 8, -5, 44, "F");
+        pdf.circle(-10, pageHeight + 7, 39, "F");
+
+        pdf.setFillColor(255, 246, 239);
+        pdf.circle(-8, 52, 23, "F");
+        pdf.circle(pageWidth + 5, pageHeight - 66, 27, "F");
+
+        // Ruta de viaje decorativa en marca de agua.
+        pdf.setDrawColor(248, 211, 220);
+        pdf.setLineWidth(0.45);
+        pdf.setLineDashPattern([1.3, 2.1], 0);
+        pdf.line(pageWidth - 58, 17, pageWidth - 20, 31);
+        pdf.line(pageWidth - 20, 31, pageWidth - 38, 48);
+        pdf.setLineDashPattern([], 0);
+
+        pdf.setFillColor(244, 190, 204);
+        pdf.circle(pageWidth - 58, 17, 1.15, "F");
+        pdf.circle(pageWidth - 38, 48, 1.15, "F");
+
+        // Globo grande, muy tenue, en la parte inferior.
+        pdf.setDrawColor(249, 220, 227);
+        pdf.setLineWidth(0.45);
+        const gx = pageWidth - 24;
+        const gy = pageHeight - 34;
+        const gr = 13;
+        pdf.circle(gx, gy, gr);
+        pdf.ellipse(gx, gy, gr * 0.42, gr);
+        pdf.line(gx - gr, gy, gx + gr, gy);
+        pdf.line(
+          gx - gr * 0.84,
+          gy - gr * 0.48,
+          gx + gr * 0.84,
+          gy - gr * 0.48,
+        );
+        pdf.line(
+          gx - gr * 0.84,
+          gy + gr * 0.48,
+          gx + gr * 0.84,
+          gy + gr * 0.48,
+        );
+
+        // Avión en marca de agua.
+        pdf.setDrawColor(248, 205, 216);
+        pdf.setLineWidth(0.6);
+        const px = 16;
+        const py = pageHeight - 43;
+        pdf.line(px, py, px + 18, py - 5);
+        pdf.line(px + 18, py - 5, px + 13, py + 2);
+        pdf.line(px + 13, py + 2, px + 8, py + 3);
+        pdf.line(px + 8, py + 3, px + 11, py - 1);
+        pdf.line(px + 11, py - 1, px + 4, py - 4);
+        pdf.line(px + 4, py - 4, px + 8, py);
+
+        // Pequeños puntos decorativos.
+        pdf.setFillColor(250, 215, 224);
+        [
+          [14, 22],
+          [20, 27],
+          [pageWidth - 15, 72],
+          [pageWidth - 20, 78],
+        ].forEach(([dx, dy]) => {
+          pdf.circle(dx, dy, 0.8, "F");
+        });
+      };
+
+      const addPage = () => {
+        pdf.addPage();
+        drawPageBackground();
+        y = 18;
+      };
+
+      const ensureSpace = (height: number) => {
+        if (y + height > bottomLimit) addPage();
+      };
+
+      const addWrappedText = (
+        text: string,
+        x: number,
+        maxWidth: number,
+        options?: {
+          fontSize?: number;
+          bold?: boolean;
+          color?: [number, number, number];
+          lineHeight?: number;
+        },
+      ) => {
+        const fontSize = options?.fontSize ?? 10;
+        const lineHeight = options?.lineHeight ?? fontSize * 0.42;
+        pdf.setFont("helvetica", options?.bold ? "bold" : "normal");
+        pdf.setFontSize(fontSize);
+        pdf.setTextColor(...(options?.color ?? dark));
+
+        const lines = pdf.splitTextToSize(text || "", maxWidth) as string[];
+        ensureSpace(Math.max(lineHeight, lines.length * lineHeight));
+        pdf.text(lines, x, y);
+        y += Math.max(lineHeight, lines.length * lineHeight);
+      };
+
+      const imageUrlToDataUrl = async (url: string) => {
+        const response = await fetch(url, { mode: "cors" });
+        if (!response.ok)
+          throw new Error(`No se pudo cargar la imagen (${response.status})`);
+
+        const blob = await response.blob();
+        return await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(String(reader.result));
+          reader.onerror = () => reject(reader.error);
+          reader.readAsDataURL(blob);
+        });
+      };
+
+      // Fondo de la primera página.
+      drawPageBackground();
+
+      // PORTADA
+      pdf.setFillColor(...lightRose);
+      pdf.roundedRect(margin, y, contentWidth, 44, 4, 4, "F");
+      drawGlobe(pageWidth - margin - 13, y + 13, 5.5);
+      drawPlane(pageWidth - margin - 34, y + 31, 1);
+      drawRoute(pageWidth - margin - 62, y + 34, pageWidth - margin - 38);
+      y += 11;
+
+      pdf.setTextColor(...rose);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(10);
+      pdf.text(
+        (agencyName.trim() || "AGENCIA DE VIAJES").toUpperCase(),
+        margin + 7,
+        y,
+      );
+      y += 8;
+
+      pdf.setTextColor(...dark);
+      pdf.setFontSize(22);
+      const titleLines = pdf.splitTextToSize(
+        finalTitle,
+        contentWidth - 14,
+      ) as string[];
+      pdf.text(titleLines, margin + 7, y);
+      y += titleLines.length * 8 + 4;
+
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(9);
+      pdf.setTextColor(...muted);
+      pdf.text(
+        `${proposal.days.length} ${proposal.days.length === 1 ? "día" : "días"} · Itinerario preparado con NIA`,
+        margin + 7,
+        y,
+      );
+      y = 70;
+
+      if (proposal.summary) {
+        addWrappedText("Resumen del viaje", margin, contentWidth, {
+          fontSize: 14,
+          bold: true,
+          color: dark,
+          lineHeight: 6,
+        });
+        y += 2;
+        addWrappedText(proposal.summary, margin, contentWidth, {
+          fontSize: 10,
+          color: muted,
+          lineHeight: 5,
+        });
+        y += 5;
+      }
+
+      if (proposal.budget) {
+        ensureSpace(24);
+        pdf.setFillColor(248, 250, 252);
+        pdf.roundedRect(margin, y, contentWidth, 19, 3, 3, "F");
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(9);
+        pdf.setTextColor(...muted);
+        pdf.text("PRESUPUESTO ESTIMADO", margin + 5, y + 7);
+        pdf.setFontSize(15);
+        pdf.setTextColor(...rose);
+        pdf.text(
+          formatBudget(proposal.budget.total, proposal.budget.currency),
+          margin + 5,
+          y + 14,
+        );
+        y += 27;
+      }
+
+      // PLAN DÍA POR DÍA
+      for (const day of proposal.days) {
+        ensureSpace(25);
+        pdf.setDrawColor(244, 221, 225);
+        pdf.setLineWidth(0.4);
+        pdf.line(margin, y, pageWidth - margin, y);
+        y += 8;
+
+        drawPlane(margin, y + 1, 0.55);
+        pdf.setTextColor(...rose);
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(9);
+        pdf.text(
+          `DÍA ${day.day_number}${day.date ? ` · ${formatDate(day.date)}` : ""}`,
+          margin + 11,
+          y,
+        );
+        y += 7;
+
+        addWrappedText(
+          day.title || `Día ${day.day_number}`,
+          margin,
+          contentWidth,
+          {
+            fontSize: 15,
+            bold: true,
+            color: dark,
+            lineHeight: 6,
+          },
+        );
+
+        if (day.description) {
+          y += 1;
+          addWrappedText(day.description, margin, contentWidth, {
+            fontSize: 9,
+            color: muted,
+            lineHeight: 4.5,
+          });
+        }
+        y += 4;
+
+        for (const activity of day.activities ?? []) {
+          ensureSpace(42);
+
+          let activityImage: TravelImage | null = null;
+          try {
+            activityImage = await searchTravelImage(
+              activity.title,
+              activity.location || "",
+            );
+          } catch (imageSearchError) {
+            console.warn(
+              "No se pudo buscar imagen para PDF:",
+              imageSearchError,
+            );
+          }
+
+          const imageWidth = 42;
+          const imageHeight = 29;
+          const textX = activityImage?.url ? margin + imageWidth + 5 : margin;
+          const textWidth = activityImage?.url
+            ? contentWidth - imageWidth - 5
+            : contentWidth;
+          const blockStartY = y;
+
+          if (activityImage?.url) {
+            try {
+              const dataUrl = await imageUrlToDataUrl(activityImage.url);
+              const format = dataUrl.startsWith("data:image/png")
+                ? "PNG"
+                : "JPEG";
+              pdf.addImage(
+                dataUrl,
+                format,
+                margin,
+                blockStartY,
+                imageWidth,
+                imageHeight,
+                undefined,
+                "FAST",
+              );
+            } catch (imageError) {
+              console.warn(
+                "No se pudo insertar una imagen en el PDF:",
+                imageError,
+              );
+            }
+          }
+
+          y = blockStartY + 4;
+          const timeText = [
+            activity.start_time ? formatTime(activity.start_time) : "",
+            activity.end_time ? formatTime(activity.end_time) : "",
+          ]
+            .filter(Boolean)
+            .join(" – ");
+
+          if (timeText) {
+            addWrappedText(timeText, textX, textWidth, {
+              fontSize: 8,
+              bold: true,
+              color: rose,
+              lineHeight: 3.8,
+            });
+            y += 1;
+          }
+
+          addWrappedText(activity.title, textX, textWidth, {
+            fontSize: 11,
+            bold: true,
+            color: dark,
+            lineHeight: 4.7,
+          });
+          y += 1;
+
+          if (activity.description) {
+            addWrappedText(activity.description, textX, textWidth, {
+              fontSize: 8.5,
+              color: muted,
+              lineHeight: 4,
+            });
+          }
+
+          if (activity.location) {
+            y += 1;
+            addWrappedText(
+              `Ubicación: ${activity.location}`,
+              textX,
+              textWidth,
+              {
+                fontSize: 8,
+                bold: true,
+                color: muted,
+                lineHeight: 3.8,
+              },
+            );
+          }
+
+          if (activity.estimated_cost != null) {
+            y += 1;
+            addWrappedText(
+              `Estimado: ${formatBudget(activity.estimated_cost, proposal.budget?.currency)}`,
+              textX,
+              textWidth,
+              {
+                fontSize: 8,
+                bold: true,
+                color: [5, 150, 105],
+                lineHeight: 3.8,
+              },
+            );
+          }
+
+          y = Math.max(y + 5, blockStartY + imageHeight + 6);
+        }
+      }
+
+      if (proposal.recommendations?.length) {
+        ensureSpace(25);
+        y += 2;
+        addWrappedText("Recomendaciones", margin, contentWidth, {
+          fontSize: 14,
+          bold: true,
+          color: dark,
+          lineHeight: 6,
+        });
+        y += 2;
+
+        for (const item of proposal.recommendations.slice(0, 6)) {
+          addWrappedText(`• ${item.name}`, margin, contentWidth, {
+            fontSize: 9,
+            bold: true,
+            color: dark,
+            lineHeight: 4.5,
+          });
+          if (item.description) {
+            addWrappedText(item.description, margin + 4, contentWidth - 4, {
+              fontSize: 8.5,
+              color: muted,
+              lineHeight: 4,
+            });
+          }
+          y += 2;
+        }
+      }
+
+      if (proposal.considerations?.length) {
+        ensureSpace(22);
+        y += 3;
+        addWrappedText("Antes de confirmar", margin, contentWidth, {
+          fontSize: 12,
+          bold: true,
+          color: dark,
+          lineHeight: 5,
+        });
+        y += 2;
+        for (const item of proposal.considerations) {
+          addWrappedText(`• ${item}`, margin, contentWidth, {
+            fontSize: 8.5,
+            color: muted,
+            lineHeight: 4,
+          });
+          y += 1;
+        }
+      }
+
+      // Pie de página en todas las páginas.
+      const totalPages = pdf.getNumberOfPages();
+      for (let page = 1; page <= totalPages; page += 1) {
+        pdf.setPage(page);
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(7.5);
+        pdf.setTextColor(148, 163, 184);
+        drawGlobe(margin + 2.3, pageHeight - 9.3, 2.1);
+        pdf.text(
+          `${agencyName.trim() || "Agencia de viajes"} · Propuesta de viaje`,
+          margin + 7,
+          pageHeight - 8,
+        );
+        pdf.text(
+          `${page} / ${totalPages}`,
+          pageWidth - margin,
+          pageHeight - 8,
+          { align: "right" },
+        );
+      }
+
+      const safeName =
+        finalTitle
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-zA-Z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, "")
+          .toLowerCase() || "itinerario";
+
+      pdf.save(`${safeName}.pdf`);
+    } catch (error) {
+      console.error("No se pudo generar el PDF:", error);
+      alert("No se pudo generar el PDF. Inténtalo nuevamente.");
+    } finally {
+      setGeneratingPdf(false);
+    }
   };
 
   return (
@@ -1411,16 +2061,21 @@ function ReviewStep({
 
           <button
             type="button"
-            onClick={printPdf}
+            onClick={downloadPdf}
+            disabled={generatingPdf}
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#ed5f87] to-[#e9547d] px-5 py-3.5 text-sm font-bold text-white shadow-lg shadow-rose-200 transition hover:-translate-y-0.5"
           >
-            <FiDownload />
-            Descargar / Guardar PDF
+            {generatingPdf ? (
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+            ) : (
+              <FiDownload />
+            )}
+            {generatingPdf ? "Generando PDF..." : "Descargar PDF"}
           </button>
 
           <button
             type="button"
-            onClick={printPdf}
+            onClick={printProposal}
             className="flex w-full items-center justify-center gap-2 rounded-xl border border-rose-200 bg-white px-5 py-3 text-sm font-bold text-rose-600 transition hover:bg-rose-50"
           >
             <FiPrinter />
@@ -1459,7 +2114,7 @@ function ReviewStep({
         backLabel="Volver a personalizar"
         nextLabel="Descargar PDF"
         onBack={onBack}
-        onNext={printPdf}
+        onNext={downloadPdf}
       />
     </>
   );
@@ -1482,6 +2137,42 @@ function PrintableItinerary({
 
   accentStyle: "rose" | "soft" | "classic";
 }) {
+  const [pdfImages, setPdfImages] = useState<
+    Record<string, TravelImage | null>
+  >({});
+
+  useEffect(() => {
+    let active = true;
+
+    const loadPdfImages = async () => {
+      const activities = proposal.days.flatMap((day) =>
+        (day.activities || []).map((activity, activityIndex) => ({
+          activity,
+          key: `${day.day_number}-${activityIndex}-${activity.title}`,
+        })),
+      );
+
+      const results = await Promise.all(
+        activities.map(async ({ activity, key }) => ({
+          key,
+          image: await searchTravelImage(activity.title, activity.location),
+        })),
+      );
+
+      if (!active) return;
+      const next: Record<string, TravelImage | null> = {};
+      results.forEach(({ key, image }) => {
+        next[key] = image;
+      });
+      setPdfImages(next);
+    };
+
+    void loadPdfImages();
+    return () => {
+      active = false;
+    };
+  }, [proposal]);
+
   return (
     <article
       id="triply-printable-itinerary"
@@ -1542,36 +2233,50 @@ function PrintableItinerary({
 
             {day.activities?.length > 0 && (
               <div className="ml-5 mt-5 border-l border-rose-100 pl-8">
-                {day.activities.map((activity, activityIndex) => (
-                  <div
-                    key={`${day.day_number}-${activityIndex}`}
-                    className="relative mb-5 break-inside-avoid"
-                  >
-                    <span className="absolute -left-[37px] top-1 h-4 w-4 rounded-full border-4 border-white bg-rose-400 ring-1 ring-rose-100" />
+                {day.activities.map((activity, activityIndex) => {
+                  const imageKey = `${day.day_number}-${activityIndex}-${activity.title}`;
+                  const image = pdfImages[imageKey];
 
-                    <div className="flex flex-wrap items-center gap-2">
-                      {activity.start_time && (
-                        <span className="text-xs font-black text-slate-500">
-                          {formatTime(activity.start_time)}
-                        </span>
+                  return (
+                    <div
+                      key={`${day.day_number}-${activityIndex}`}
+                      className="relative mb-5 break-inside-avoid"
+                    >
+                      <span className="absolute -left-[37px] top-1 h-4 w-4 rounded-full border-4 border-white bg-rose-400 ring-1 ring-rose-100" />
+
+                      {image?.url && (
+                        <img
+                          src={image.url}
+                          alt={image.alt || activity.title}
+                          crossOrigin="anonymous"
+                          className="mb-3 h-40 w-full rounded-xl object-cover"
+                        />
                       )}
 
-                      <h3 className="text-sm font-bold text-slate-900">
-                        {activity.title}
-                      </h3>
-                    </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {activity.start_time && (
+                          <span className="text-xs font-black text-slate-500">
+                            {formatTime(activity.start_time)}
+                          </span>
+                        )}
 
-                    <p className="mt-1 text-xs leading-5 text-slate-500">
-                      {activity.description}
-                    </p>
+                        <h3 className="text-sm font-bold text-slate-900">
+                          {activity.title}
+                        </h3>
+                      </div>
 
-                    {activity.location && (
-                      <p className="mt-1 text-[11px] font-semibold text-slate-400">
-                        {activity.location}
+                      <p className="mt-1 text-xs leading-5 text-slate-500">
+                        {activity.description}
                       </p>
-                    )}
-                  </div>
-                ))}
+
+                      {activity.location && (
+                        <p className="mt-1 text-[11px] font-semibold text-slate-400">
+                          {activity.location}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </section>
@@ -1914,9 +2619,6 @@ function SectionHeading({
     </div>
   );
 }
-
-
-
 
 function formatCost(value: number | null | undefined) {
   if (value === null || value === undefined || Number.isNaN(Number(value))) {
