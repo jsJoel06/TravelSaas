@@ -599,7 +599,7 @@ export default function ItineraryDetail() {
 
   if (!itinerary) {
     return (
-      <div className="min-h-screen bg-[#f5f8fc] p-6 lg:p-8">
+      <div className="min-h-screen bg-[#fffafa] p-6 lg:p-8">
         <div className="max-w-5xl mx-auto">
           <button
             onClick={() => navigate("/itinerarios")}
@@ -629,18 +629,18 @@ export default function ItineraryDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f5f8fc]">
+    <div className="min-h-screen bg-[#fffafa]">
       {/* TOP HEADER */}
-      <div className="relative overflow-hidden bg-[#0f172a]">
+      <div className="relative overflow-hidden bg-white">
         <div className="absolute inset-0 opacity-30">
-          <div className="absolute -right-32 -top-40 w-96 h-96 rounded-full bg-cyan-400 blur-3xl" />
-          <div className="absolute left-1/3 -bottom-40 w-96 h-96 rounded-full bg-blue-600 blur-3xl" />
+          <div className="absolute -right-32 -top-40 w-96 h-96 rounded-full bg-rose-300 blur-3xl" />
+          <div className="absolute left-1/3 -bottom-40 w-96 h-96 rounded-full bg-[#ef5b83] blur-3xl" />
         </div>
 
-        <div className="relative max-w-7xl mx-auto px-6 lg:px-8 py-6">
+        <div className="relative max-w-[1500px] mx-auto px-4 lg:px-6 py-6">
           <button
             onClick={() => navigate("/itinerarios")}
-            className="inline-flex items-center gap-2 text-slate-300 hover:text-white text-sm font-medium transition mb-7"
+            className="inline-flex items-center gap-2 text-slate-500 hover:text-[#e94f79] text-sm font-medium transition mb-7"
           >
             <FiArrowLeft />
             Volver a itinerarios
@@ -649,7 +649,7 @@ export default function ItineraryDetail() {
           <div className="flex flex-col xl:flex-row xl:items-end xl:justify-between gap-8">
             <div className="min-w-0">
               <div className="flex items-center gap-2 mb-4">
-                <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/10 text-cyan-300 text-xs font-bold uppercase tracking-wider">
+                <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-rose-50 border border-rose-100 text-rose-600 text-xs font-bold uppercase tracking-wider">
                   <span className="w-1.5 h-1.5 rounded-full bg-cyan-300" />
                   Propuesta de viaje
                 </span>
@@ -657,25 +657,25 @@ export default function ItineraryDetail() {
                 <StatusBadge status={itinerary.status} dark />
               </div>
 
-              <h1 className="text-3xl lg:text-4xl xl:text-5xl font-black text-white tracking-tight truncate max-w-4xl">
+              <h1 className="text-3xl lg:text-4xl xl:text-5xl font-black text-slate-900 tracking-tight truncate max-w-4xl">
                 {itinerary.title}
               </h1>
 
-              <div className="flex flex-wrap items-center gap-x-6 gap-y-3 mt-5 text-sm text-slate-300">
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-3 mt-5 text-sm text-slate-500">
                 <span className="inline-flex items-center gap-2">
-                  <FiMapPin className="text-cyan-400" />
+                  <FiMapPin className="text-rose-500" />
                   {itinerary.destination}
                 </span>
 
                 <span className="inline-flex items-center gap-2">
-                  <FiUsers className="text-cyan-400" />
+                  <FiUsers className="text-rose-500" />
                   {itinerary.travelers}{" "}
                   {itinerary.travelers === 1 ? "viajero" : "viajeros"}
                 </span>
 
                 {itinerary.trip_type && (
                   <span className="inline-flex items-center gap-2">
-                    <FiGlobe className="text-cyan-400" />
+                    <FiGlobe className="text-rose-500" />
                     {itinerary.trip_type}
                   </span>
                 )}
@@ -684,7 +684,7 @@ export default function ItineraryDetail() {
 
             <button
               onClick={() => setEditingInfo(!editingInfo)}
-              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-white text-slate-900 font-semibold shadow-lg shadow-black/10 hover:bg-slate-100 transition shrink-0"
+              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#ef5b83] text-white font-semibold shadow-lg shadow-rose-200/60 hover:bg-slate-100 transition shrink-0"
             >
               {editingInfo ? (
                 <>
@@ -702,7 +702,7 @@ export default function ItineraryDetail() {
         </div>
       </div>
 
-      <main className="max-w-7xl mx-auto px-6 lg:px-8 py-8">
+      <main className="max-w-[1500px] mx-auto px-4 lg:px-6 py-8">
         {/* ERROR */}
         {error && (
           <div className="mb-7 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
@@ -765,7 +765,7 @@ export default function ItineraryDetail() {
           <div className="px-6 lg:px-8 py-5 border-b border-slate-100 flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2">
-                <span className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                <span className="w-9 h-9 rounded-xl bg-rose-50 text-[#e94f79] flex items-center justify-center">
                   <FiFileText />
                 </span>
 
@@ -783,7 +783,7 @@ export default function ItineraryDetail() {
             {!editingInfo && (
               <button
                 onClick={() => setEditingInfo(true)}
-                className="hidden sm:inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold text-blue-600 hover:bg-blue-50 transition"
+                className="hidden sm:inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold text-[#e94f79] hover:bg-rose-50 transition"
               >
                 <FiEdit3 />
                 Editar
@@ -806,7 +806,7 @@ export default function ItineraryDetail() {
 
                 <Field label="Destino">
                   <div className="relative">
-                    <FiMapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-500" />
+                    <FiMapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-[#e94f79]" />
                     <input
                       type="text"
                       value={form.destination}
@@ -926,7 +926,7 @@ export default function ItineraryDetail() {
                 <button
                   onClick={guardarInformacion}
                   disabled={saving}
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-bold shadow-lg shadow-blue-500/20 hover:from-blue-700 hover:to-cyan-600 disabled:opacity-50 transition"
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-[#ef5b83] to-[#f47a98] text-white font-bold shadow-lg shadow-rose-300/30 hover:from-[#df466f] hover:to-[#ed6789] disabled:opacity-50 transition"
                 >
                   <FiSave />
                   {saving ? "Guardando..." : "Guardar cambios"}
@@ -1000,7 +1000,7 @@ export default function ItineraryDetail() {
         {/* PLAN HEADER */}
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-5 mb-6">
           <div>
-            <div className="inline-flex items-center gap-2 text-blue-600 text-sm font-bold mb-2">
+            <div className="inline-flex items-center gap-2 text-[#e94f79] text-sm font-bold mb-2">
               <FiZap />
               PLANIFICACIÓN
             </div>
@@ -1022,14 +1022,14 @@ export default function ItineraryDetail() {
         </div>
 
         {/* ADD DAY */}
-        <section className="relative overflow-hidden bg-gradient-to-br from-[#0f172a] to-[#172554] rounded-3xl p-6 lg:p-7 mb-8 shadow-xl shadow-slate-900/10">
-          <div className="absolute right-0 top-0 w-72 h-72 bg-cyan-400/10 rounded-full blur-3xl" />
+        <section className="relative overflow-hidden bg-gradient-to-br from-[#fff7f8] to-[#fff1f4] rounded-3xl p-6 lg:p-7 mb-8 shadow-xl shadow-slate-900/10">
+          <div className="absolute right-0 top-0 w-72 h-72 bg-rose-300/10 rounded-full blur-3xl" />
 
           <div className="relative">
             <div className="flex flex-col lg:flex-row lg:items-center gap-6">
               <div className="lg:w-64 shrink-0">
                 <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 rounded-2xl bg-white/10 border border-white/10 text-cyan-300 flex items-center justify-center">
+                  <div className="w-11 h-11 rounded-2xl bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center">
                     <FiPlus size={21} />
                   </div>
 
@@ -1075,7 +1075,7 @@ export default function ItineraryDetail() {
           <EmptyDays />
         ) : (
           <div className="relative">
-            <div className="absolute left-[22px] top-8 bottom-8 w-px bg-gradient-to-b from-blue-300 via-slate-200 to-transparent hidden md:block" />
+            <div className="absolute left-[22px] top-8 bottom-8 w-px bg-gradient-to-b from-rose-300 via-slate-200 to-transparent hidden md:block" />
 
             <div className="space-y-7">
               {days.map((day) => {
@@ -1088,7 +1088,7 @@ export default function ItineraryDetail() {
                 return (
                   <section key={day.id} className="relative md:pl-14">
                     {/* TIMELINE NUMBER */}
-                    <div className="absolute left-0 top-5 hidden md:flex w-11 h-11 rounded-2xl bg-gradient-to-br from-blue-600 to-cyan-500 text-white items-center justify-center font-black shadow-lg shadow-blue-500/20 z-10">
+                    <div className="absolute left-0 top-5 hidden md:flex w-11 h-11 rounded-2xl bg-gradient-to-br from-[#ef5b83] to-[#f47a98] text-white items-center justify-center font-black shadow-lg shadow-rose-300/30 z-10">
                       {day.day_number}
                     </div>
 
@@ -1180,13 +1180,13 @@ export default function ItineraryDetail() {
                         ) : (
                           <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-5">
                             <div className="flex items-start gap-4">
-                              <div className="md:hidden w-11 h-11 rounded-2xl bg-gradient-to-br from-blue-600 to-cyan-500 text-white flex items-center justify-center font-black shrink-0 shadow-lg shadow-blue-500/20">
+                              <div className="md:hidden w-11 h-11 rounded-2xl bg-gradient-to-br from-[#ef5b83] to-[#f47a98] text-white flex items-center justify-center font-black shrink-0 shadow-lg shadow-rose-300/30">
                                 {day.day_number}
                               </div>
 
                               <div>
                                 <div className="flex flex-wrap items-center gap-2">
-                                  <span className="text-xs font-bold uppercase tracking-wider text-blue-600">
+                                  <span className="text-xs font-bold uppercase tracking-wider text-[#e94f79]">
                                     Día {day.day_number}
                                   </span>
 
@@ -1223,7 +1223,7 @@ export default function ItineraryDetail() {
 
                               <button
                                 onClick={() => comenzarEditarDia(day)}
-                                className="p-2.5 rounded-xl text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition"
+                                className="p-2.5 rounded-xl text-slate-500 hover:text-[#e94f79] hover:bg-rose-50 transition"
                                 title="Editar día"
                               >
                                 <FiEdit3 />
@@ -1312,8 +1312,8 @@ export default function ItineraryDetail() {
         )}
 
         {/* FOOTER NOTE */}
-        <div className="mt-10 rounded-2xl border border-blue-100 bg-blue-50/70 p-5 flex items-start gap-4">
-          <div className="w-10 h-10 rounded-xl bg-white text-blue-600 border border-blue-100 flex items-center justify-center shrink-0">
+        <div className="mt-10 rounded-2xl border border-rose-100 bg-rose-50/70 p-5 flex items-start gap-4">
+          <div className="w-10 h-10 rounded-xl bg-white text-[#e94f79] border border-rose-100 flex items-center justify-center shrink-0">
             <FiZap />
           </div>
 
@@ -1338,12 +1338,12 @@ export default function ItineraryDetail() {
 
 function LoadingState() {
   return (
-    <div className="min-h-screen bg-[#f5f8fc] flex items-center justify-center p-6">
+    <div className="min-h-screen bg-[#fffafa] flex items-center justify-center p-6">
       <div className="w-full max-w-md bg-white border border-slate-200 rounded-3xl shadow-xl p-10 text-center">
         <div className="relative w-16 h-16 mx-auto mb-6">
-          <div className="absolute inset-0 rounded-2xl bg-blue-100 animate-pulse" />
+          <div className="absolute inset-0 rounded-2xl bg-rose-100 animate-pulse" />
 
-          <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-600 to-cyan-500 text-white flex items-center justify-center">
+          <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-[#ef5b83] to-[#f47a98] text-white flex items-center justify-center">
             <FiFileText size={25} />
           </div>
         </div>
@@ -1355,7 +1355,7 @@ function LoadingState() {
         </p>
 
         <div className="mt-6 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-          <div className="h-full w-2/3 bg-gradient-to-r from-blue-600 to-cyan-400 rounded-full animate-pulse" />
+          <div className="h-full w-2/3 bg-gradient-to-r from-[#ef5b83] to-[#f59ab0] rounded-full animate-pulse" />
         </div>
       </div>
     </div>
@@ -1365,7 +1365,7 @@ function LoadingState() {
 function EmptyDays() {
   return (
     <div className="bg-white border border-dashed border-slate-300 rounded-3xl p-12 text-center">
-      <div className="w-16 h-16 mx-auto rounded-2xl bg-blue-50 text-blue-500 flex items-center justify-center mb-5">
+      <div className="w-16 h-16 mx-auto rounded-2xl bg-rose-50 text-[#e94f79] flex items-center justify-center mb-5">
         <FiCalendar size={28} />
       </div>
 
@@ -1394,7 +1394,7 @@ function OverviewCard({
 }) {
   return (
     <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition">
-      <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-4">
+      <div className="w-10 h-10 rounded-xl bg-rose-50 text-[#e94f79] flex items-center justify-center mb-4">
         {icon}
       </div>
 
@@ -1427,7 +1427,7 @@ function InfoItem({
       </p>
 
       <div className="flex items-start gap-3">
-        <span className="w-9 h-9 rounded-xl bg-slate-50 text-blue-600 flex items-center justify-center shrink-0">
+        <span className="w-9 h-9 rounded-xl bg-slate-50 text-[#e94f79] flex items-center justify-center shrink-0">
           {icon}
         </span>
 
@@ -1506,9 +1506,9 @@ function ActivityCard({
 }) {
   if (isEditing && editForm) {
     return (
-      <div className="border border-blue-200 bg-blue-50/40 rounded-2xl p-5">
+      <div className="border border-rose-200 bg-rose-50/40 rounded-2xl p-5">
         <div className="flex items-center gap-2 mb-5">
-          <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center">
+          <div className="w-8 h-8 rounded-lg bg-[#ef5b83] text-white flex items-center justify-center">
             <FiEdit3 size={15} />
           </div>
 
@@ -1604,7 +1604,7 @@ function ActivityCard({
           </Field>
         </div>
 
-        <div className="flex justify-end gap-3 mt-5 pt-5 border-t border-blue-100">
+        <div className="flex justify-end gap-3 mt-5 pt-5 border-t border-rose-100">
           <button
             onClick={onCancel}
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 font-semibold hover:bg-slate-50"
@@ -1623,9 +1623,9 @@ function ActivityCard({
   }
 
   return (
-    <div className="group border border-slate-200 rounded-2xl p-4 lg:p-5 hover:border-blue-200 hover:shadow-sm transition">
+    <div className="group border border-slate-200 rounded-2xl p-4 lg:p-5 hover:border-rose-200 hover:shadow-sm transition">
       <div className="flex items-start gap-4">
-        <div className="w-9 h-9 rounded-xl bg-slate-100 group-hover:bg-blue-50 text-slate-500 group-hover:text-blue-600 flex items-center justify-center shrink-0 font-bold text-sm transition">
+        <div className="w-9 h-9 rounded-xl bg-slate-100 group-hover:bg-rose-50 text-slate-500 group-hover:text-[#e94f79] flex items-center justify-center shrink-0 font-bold text-sm transition">
           {index + 1}
         </div>
 
@@ -1645,7 +1645,7 @@ function ActivityCard({
           <div className="flex flex-wrap gap-x-5 gap-y-2 mt-4 text-xs font-medium text-slate-400">
             {(activity.start_time || activity.end_time) && (
               <span className="inline-flex items-center gap-1.5">
-                <FiClock className="text-blue-500" />
+                <FiClock className="text-[#e94f79]" />
                 {formatTime(activity.start_time)}
 
                 {activity.end_time ? ` – ${formatTime(activity.end_time)}` : ""}
@@ -1654,7 +1654,7 @@ function ActivityCard({
 
             {activity.location && (
               <span className="inline-flex items-center gap-1.5">
-                <FiMapPin className="text-blue-500" />
+                <FiMapPin className="text-[#e94f79]" />
                 {activity.location}
               </span>
             )}
@@ -1672,7 +1672,7 @@ function ActivityCard({
         <div className="flex items-center gap-1 shrink-0">
           <button
             onClick={onEdit}
-            className="p-2.5 rounded-xl text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition"
+            className="p-2.5 rounded-xl text-slate-400 hover:text-[#e94f79] hover:bg-rose-50 transition"
             title="Editar actividad"
           >
             <FiEdit3 />
@@ -1703,7 +1703,7 @@ function AddActivityForm({
   return (
     <div className="rounded-2xl bg-slate-50 border border-slate-200 p-5">
       <div className="flex items-center gap-3 mb-5">
-        <div className="w-9 h-9 rounded-xl bg-white border border-slate-200 text-blue-600 flex items-center justify-center">
+        <div className="w-9 h-9 rounded-xl bg-white border border-slate-200 text-[#e94f79] flex items-center justify-center">
           <FiPlus />
         </div>
 
@@ -1788,7 +1788,7 @@ function AddActivityForm({
       <div className="flex justify-end mt-4">
         <button
           onClick={onAdd}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-bold shadow-md shadow-blue-500/20 hover:from-blue-700 hover:to-cyan-600 transition"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#ef5b83] to-[#f47a98] text-white font-bold shadow-md shadow-rose-300/30 hover:from-[#df466f] hover:to-[#ed6789] transition"
         >
           <FiPlus />
           Agregar actividad
@@ -1803,7 +1803,7 @@ function ActivityTypeBadge({ type }: { type: string }) {
     Transporte: "bg-sky-50 text-sky-700 border-sky-100",
     Hotel: "bg-violet-50 text-violet-700 border-violet-100",
     Comida: "bg-orange-50 text-orange-700 border-orange-100",
-    Tour: "bg-blue-50 text-blue-700 border-blue-100",
+    Tour: "bg-rose-50 text-blue-700 border-rose-100",
     Actividad: "bg-emerald-50 text-emerald-700 border-emerald-100",
     Visita: "bg-cyan-50 text-cyan-700 border-cyan-100",
     "Tiempo libre": "bg-slate-100 text-slate-600 border-slate-200",
@@ -1884,10 +1884,10 @@ function formatTime(value?: string | null) {
 }
 
 const inputClass =
-  "w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10";
+  "w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-rose-400 focus:ring-4 focus:ring-rose-400/10";
 
 const selectClass =
-  "w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10";
+  "w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-rose-400 focus:ring-4 focus:ring-rose-400/10";
 
 const primaryButton =
-  "inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-bold shadow-md shadow-blue-500/20 hover:from-blue-700 hover:to-cyan-600 disabled:opacity-50 transition";
+  "inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#ef5b83] to-[#f47a98] text-white font-bold shadow-md shadow-rose-300/30 hover:from-[#df466f] hover:to-[#ed6789] disabled:opacity-50 transition";

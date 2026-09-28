@@ -1,19 +1,24 @@
-
-import { useEffect, useMemo, useState, type FormEvent } from "react";
 import {
+  useEffect,
+  useMemo,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
+import {
+  FaArrowRight,
+  FaEdit,
+  FaEnvelope,
+  FaGlobeAmericas,
+  FaPhone,
   FaPlus,
   FaSearch,
-  FaUsers,
-  FaEdit,
-  FaTrash,
-  FaTimes,
-  FaEnvelope,
-  FaPhone,
-  FaGlobeAmericas,
-  FaUserPlus,
-  FaArrowRight,
-  FaUser,
   FaStickyNote,
+  FaTimes,
+  FaTrash,
+  FaUser,
+  FaUserPlus,
+  FaUsers,
 } from "react-icons/fa";
 
 import {
@@ -31,6 +36,8 @@ export default function Clients() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const [search, setSearch] = useState("");
+  const [countryFilter, setCountryFilter] = useState("Todos");
+
   const [modalOpen, setModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
 
@@ -39,116 +46,126 @@ export default function Clients() {
   const [phone, setPhone] = useState("");
   const [country, setCountry] = useState("");
   const [notes, setNotes] = useState("");
-
   const [error, setError] = useState("");
 
   const loadClients = async () => {
     try {
       setLoading(true);
       setError("");
-
       const data = await getClients();
       setClients(data);
-    } catch (error: any) {
-      console.error(error);
-
-      setError(
-        error?.message || "No se pudieron cargar los clientes."
-      );
+    } catch (err: unknown) {
+      console.error(err);
+      setError(getErrorMessage(err, "No se pudieron cargar los clientes."));
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadClients();
+    void loadClients();
   }, []);
 
   const filteredClients = useMemo(() => {
     const value = search.toLowerCase().trim();
 
-    if (!value) {
-      return clients;
-    }
-
     return clients.filter((client) => {
-      return (
+      const matchesSearch =
+        !value ||
         client.full_name?.toLowerCase().includes(value) ||
         client.email?.toLowerCase().includes(value) ||
         client.phone?.toLowerCase().includes(value) ||
-        client.country?.toLowerCase().includes(value)
-      );
+        client.country?.toLowerCase().includes(value);
+
+      const matchesCountry =
+        countryFilter === "Todos" ||
+        client.country?.trim() === countryFilter;
+
+      return Boolean(matchesSearch && matchesCountry);
     });
-  }, [clients, search]);
+  }, [clients, search, countryFilter]);
 
-  const countriesCount = useMemo(() => {
-    return new Set(
-      clients
-        .map((client) => client.country?.trim())
-        .filter(Boolean)
-    ).size;
-  }, [clients]);
+  const countriesCount = useMemo(
+    () =>
+      new Set(
+        clients
+          .map((client) => client.country?.trim())
+          .filter((value): value is string => Boolean(value)),
+      ).size,
+    [clients],
+  );
 
-  const clientsWithEmail = useMemo(() => {
-    return clients.filter((client) => client.email?.trim()).length;
-  }, [clients]);
+  const clientsWithEmail = useMemo(
+    () => clients.filter((client) => client.email?.trim()).length,
+    [clients],
+  );
 
-  const clientsWithPhone = useMemo(() => {
-    return clients.filter((client) => client.phone?.trim()).length;
-  }, [clients]);
+  const clientsWithPhone = useMemo(
+    () => clients.filter((client) => client.phone?.trim()).length,
+    [clients],
+  );
+
+  const countryOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          clients
+            .map((client) => client.country?.trim())
+            .filter((value): value is string => Boolean(value)),
+        ),
+      ).sort((a, b) => a.localeCompare(b)),
+    [clients],
+  );
+
+  const recentClients = useMemo(() => clients.slice(0, 5), [clients]);
 
   const openCreateModal = () => {
     setEditingClient(null);
-
     setFullName("");
     setEmail("");
     setPhone("");
     setCountry("");
     setNotes("");
-
     setError("");
     setModalOpen(true);
   };
 
   const openEditModal = (client: Client) => {
     setEditingClient(client);
-
-    setFullName(client.full_name);
+    setFullName(client.full_name || "");
     setEmail(client.email || "");
     setPhone(client.phone || "");
     setCountry(client.country || "");
     setNotes(client.notes || "");
-
     setError("");
     setModalOpen(true);
   };
 
   const closeModal = () => {
     if (saving) return;
-
     setModalOpen(false);
     setError("");
   };
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
 
     if (!fullName.trim()) {
       setError("El nombre del cliente es obligatorio.");
       return;
     }
 
+    const payload = {
+      full_name: fullName.trim(),
+      email: email.trim(),
+      phone: phone.trim(),
+      country: country.trim(),
+      notes: notes.trim(),
+    };
+
     try {
       setSaving(true);
       setError("");
-
-      const payload = {
-        full_name: fullName.trim(),
-        email: email.trim(),
-        phone: phone.trim(),
-        country: country.trim(),
-        notes: notes.trim(),
-      };
 
       if (editingClient) {
         await updateClient(editingClient.id, payload);
@@ -157,14 +174,10 @@ export default function Clients() {
       }
 
       await loadClients();
-
       setModalOpen(false);
-    } catch (error: any) {
-      console.error(error);
-
-      setError(
-        error?.message || "No se pudo guardar el cliente."
-      );
+    } catch (err: unknown) {
+      console.error(err);
+      setError(getErrorMessage(err, "No se pudo guardar el cliente."));
     } finally {
       setSaving(false);
     }
@@ -172,7 +185,7 @@ export default function Clients() {
 
   const handleDelete = async (id: string) => {
     const confirmed = window.confirm(
-      "¿Seguro que deseas eliminar este cliente?"
+      "¿Seguro que deseas eliminar este cliente?",
     );
 
     if (!confirmed) return;
@@ -180,882 +193,507 @@ export default function Clients() {
     try {
       setDeletingId(id);
       setError("");
-
       await deleteClient(id);
-
       setClients((current) =>
-        current.filter((client) => client.id !== id)
+        current.filter((client) => client.id !== id),
       );
-    } catch (error: any) {
-      console.error(error);
-
-      setError(
-        error?.message || "No se pudo eliminar el cliente."
-      );
+    } catch (err: unknown) {
+      console.error(err);
+      setError(getErrorMessage(err, "No se pudo eliminar el cliente."));
     } finally {
       setDeletingId(null);
     }
   };
 
-  const getInitials = (name: string) => {
-    const cleanName = name?.trim();
-
-    if (!cleanName) return "CL";
-
-    const parts = cleanName.split(/\s+/);
-
-    if (parts.length === 1) {
-      return parts[0].charAt(0).toUpperCase();
-    }
-
-    return (
-      parts[0].charAt(0) +
-      parts[parts.length - 1].charAt(0)
-    ).toUpperCase();
-  };
-
   return (
-    <div className="min-h-screen bg-[#f5f8fc]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+    <div className="min-h-screen bg-[#fffafb] text-slate-800">
+      <main className="mx-auto max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8">
+        <header className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="mb-1 text-xs font-black uppercase tracking-[0.18em] text-rose-500">
+              Gestión de viajeros
+            </p>
+            <h1 className="text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">
+              Mis clientes
+            </h1>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+              Gestiona tus clientes y mantén sus datos organizados para crear
+              viajes y propuestas más personalizadas.
+            </p>
+          </div>
 
-        {/* =====================================================
-            HERO
-        ====================================================== */}
-        <section className="relative overflow-hidden rounded-[28px] bg-gradient-to-br from-[#0f172a] via-[#12356b] to-[#087e9d] shadow-xl mb-7">
+          <button
+            type="button"
+            onClick={openCreateModal}
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-rose-500 to-pink-500 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-rose-500/20 transition hover:-translate-y-0.5"
+          >
+            <FaPlus className="text-xs" />
+            Nuevo cliente
+          </button>
+        </header>
 
-          <div className="absolute -top-24 -right-20 w-72 h-72 rounded-full bg-cyan-400/20 blur-3xl" />
-
-          <div className="absolute -bottom-32 left-1/3 w-80 h-80 rounded-full bg-blue-500/20 blur-3xl" />
-
-          <div
-            className="absolute inset-0 opacity-[0.08]"
-            style={{
-              backgroundImage:
-                "linear-gradient(rgba(255,255,255,.7) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.7) 1px, transparent 1px)",
-              backgroundSize: "34px 34px",
-            }}
+        <section className="mb-6 grid grid-cols-2 gap-3 xl:grid-cols-4">
+          <MetricCard
+            icon={<FaUsers />}
+            label="Total de clientes"
+            value={clients.length}
+            detail="Registrados"
           />
+          <MetricCard
+            icon={<FaEnvelope />}
+            label="Con email"
+            value={clientsWithEmail}
+            detail={percentage(clientsWithEmail, clients.length)}
+          />
+          <MetricCard
+            icon={<FaPhone />}
+            label="Con teléfono"
+            value={clientsWithPhone}
+            detail={percentage(clientsWithPhone, clients.length)}
+          />
+          <MetricCard
+            icon={<FaGlobeAmericas />}
+            label="Países"
+            value={countriesCount}
+            detail="Procedencias"
+          />
+        </section>
 
-          <div className="relative p-6 sm:p-8 lg:p-10">
-            <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-7">
+        {error && !modalOpen && (
+          <div className="mb-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {error}
+          </div>
+        )}
 
-              <div className="max-w-2xl">
-
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/10 text-cyan-100 text-xs font-bold uppercase tracking-[0.16em] mb-5">
-                  <FaUsers className="text-cyan-300" />
-                  Gestión de clientes
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
+          <section className="overflow-hidden rounded-[24px] border border-rose-100 bg-white shadow-[0_12px_45px_rgba(148,75,97,0.08)]">
+            <div className="border-b border-slate-100 p-4 sm:p-5">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+                <div className="relative flex-1">
+                  <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-slate-400" />
+                  <input
+                    type="text"
+                    value={search}
+                    onChange={(event) => setSearch(event.target.value)}
+                    placeholder="Buscar por nombre, email, teléfono o país..."
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-10 text-sm outline-none transition focus:border-rose-300 focus:bg-white focus:ring-4 focus:ring-rose-100"
+                  />
+                  {search && (
+                    <button
+                      type="button"
+                      aria-label="Limpiar búsqueda"
+                      onClick={() => setSearch("")}
+                      className="absolute right-3 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                    >
+                      <FaTimes className="text-xs" />
+                    </button>
+                  )}
                 </div>
 
-                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white">
-                  Tus clientes,
-                  <span className="block text-cyan-300">
-                    en un solo lugar.
+                <select
+                  value={countryFilter}
+                  onChange={(event) => setCountryFilter(event.target.value)}
+                  className="min-w-[190px] rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 outline-none transition focus:border-rose-300 focus:ring-4 focus:ring-rose-100"
+                >
+                  <option value="Todos">Todos los países</option>
+                  {countryOptions.map((item) => (
+                    <option key={item} value={item}>
+                      {item}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {loading ? (
+              <ClientsSkeleton />
+            ) : filteredClients.length === 0 ? (
+              <EmptyState
+                searching={Boolean(search) || countryFilter !== "Todos"}
+                onCreate={openCreateModal}
+              />
+            ) : (
+              <>
+                <div className="hidden overflow-x-auto md:block">
+                  <table className="w-full min-w-[850px]">
+                    <thead>
+                      <tr className="bg-[#fff7f9] text-left">
+                        <TableHeader>Cliente</TableHeader>
+                        <TableHeader>Contacto</TableHeader>
+                        <TableHeader>País</TableHeader>
+                        <TableHeader>Notas</TableHeader>
+                        <th className="px-5 py-4 text-right text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                          Acciones
+                        </th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {filteredClients.map((client) => (
+                        <tr
+                          key={client.id}
+                          className="border-t border-slate-100 transition hover:bg-rose-50/30"
+                        >
+                          <td className="px-5 py-4">
+                            <div className="flex items-center gap-3">
+                              <Avatar name={client.full_name} />
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-bold text-slate-900">
+                                  {client.full_name}
+                                </p>
+                                <p className="mt-0.5 text-xs text-slate-400">
+                                  Cliente registrado
+                                </p>
+                              </div>
+                            </div>
+                          </td>
+
+                          <td className="px-5 py-4">
+                            <div className="space-y-1.5">
+                              <ContactLine
+                                icon={<FaEnvelope />}
+                                text={client.email || "Sin correo"}
+                              />
+                              <ContactLine
+                                icon={<FaPhone />}
+                                text={client.phone || "Sin teléfono"}
+                              />
+                            </div>
+                          </td>
+
+                          <td className="px-5 py-4">
+                            <span className="inline-flex items-center gap-2 rounded-full bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-600">
+                              <FaGlobeAmericas className="text-rose-400" />
+                              {client.country || "Sin especificar"}
+                            </span>
+                          </td>
+
+                          <td className="max-w-[220px] px-5 py-4">
+                            <p className="truncate text-xs text-slate-500">
+                              {client.notes || "Sin notas"}
+                            </p>
+                          </td>
+
+                          <td className="px-5 py-4">
+                            <div className="flex justify-end gap-2">
+                              <button
+                                type="button"
+                                title="Editar cliente"
+                                onClick={() => openEditModal(client)}
+                                className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-50 text-slate-500 transition hover:bg-rose-50 hover:text-rose-600"
+                              >
+                                <FaEdit className="text-xs" />
+                              </button>
+
+                              <button
+                                type="button"
+                                title="Eliminar cliente"
+                                onClick={() => void handleDelete(client.id)}
+                                disabled={deletingId === client.id}
+                                className="flex h-9 w-9 items-center justify-center rounded-full bg-rose-50 text-rose-500 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                {deletingId === client.id ? (
+                                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-rose-200 border-t-rose-500" />
+                                ) : (
+                                  <FaTrash className="text-xs" />
+                                )}
+                              </button>
+
+                              <button
+                                type="button"
+                                title="Ver cliente"
+                                onClick={() => openEditModal(client)}
+                                className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-sm transition hover:scale-105"
+                              >
+                                <FaArrowRight className="text-xs" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="divide-y divide-slate-100 md:hidden">
+                  {filteredClients.map((client) => (
+                    <article key={client.id} className="p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <Avatar name={client.full_name} />
+                          <div className="min-w-0">
+                            <h3 className="truncate text-sm font-bold text-slate-900">
+                              {client.full_name}
+                            </h3>
+                            <p className="mt-1 text-xs text-slate-400">
+                              {client.country || "País sin especificar"}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-1">
+                          <button
+                            type="button"
+                            aria-label="Editar cliente"
+                            onClick={() => openEditModal(client)}
+                            className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-50 text-rose-600"
+                          >
+                            <FaEdit className="text-xs" />
+                          </button>
+                          <button
+                            type="button"
+                            aria-label="Eliminar cliente"
+                            onClick={() => void handleDelete(client.id)}
+                            disabled={deletingId === client.id}
+                            className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-50 text-red-500 disabled:opacity-50"
+                          >
+                            <FaTrash className="text-xs" />
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 space-y-2 rounded-2xl bg-slate-50 p-3">
+                        <ContactLine
+                          icon={<FaEnvelope />}
+                          text={client.email || "Sin correo"}
+                        />
+                        <ContactLine
+                          icon={<FaPhone />}
+                          text={client.phone || "Sin teléfono"}
+                        />
+                      </div>
+                    </article>
+                  ))}
+                </div>
+
+                <div className="flex flex-col gap-2 border-t border-slate-100 bg-slate-50/50 px-5 py-4 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between">
+                  <span>
+                    Mostrando{" "}
+                    <strong className="text-slate-600">
+                      {filteredClients.length}
+                    </strong>{" "}
+                    de{" "}
+                    <strong className="text-slate-600">{clients.length}</strong>{" "}
+                    clientes
                   </span>
-                </h1>
+                  <span>Directorio actualizado</span>
+                </div>
+              </>
+            )}
+          </section>
 
-                <p className="mt-4 text-sm sm:text-base text-slate-200/85 max-w-xl leading-7">
-                  Organiza la información de tus viajeros, conoce
-                  sus preferencias y ten todo preparado para crear
-                  propuestas de viaje más personalizadas.
-                </p>
+          <aside className="space-y-5">
+            <SideCard title="Búsqueda rápida" icon={<FaSearch />}>
+              <div className="relative">
+                <FaSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs text-slate-400" />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Buscar clientes..."
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-10 pr-3 text-sm outline-none transition focus:border-rose-300 focus:bg-white focus:ring-4 focus:ring-rose-100"
+                />
+              </div>
 
+              <p className="mt-4 text-xs font-bold text-slate-700">
+                Filtros por país
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <FilterChip
+                  active={countryFilter === "Todos"}
+                  onClick={() => setCountryFilter("Todos")}
+                >
+                  Todos
+                </FilterChip>
+
+                {countryOptions.slice(0, 5).map((item) => (
+                  <FilterChip
+                    key={item}
+                    active={countryFilter === item}
+                    onClick={() => setCountryFilter(item)}
+                  >
+                    {item}
+                  </FilterChip>
+                ))}
+              </div>
+            </SideCard>
+
+            <SideCard title="Acciones rápidas" icon={<FaPlus />}>
+              <button
+                type="button"
+                onClick={openCreateModal}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-rose-500 to-pink-500 px-4 py-3 text-sm font-bold text-white shadow-md shadow-rose-500/15"
+              >
+                <FaPlus className="text-xs" />
+                Nuevo cliente
+              </button>
+
+              <p className="mt-3 rounded-xl border border-dashed border-rose-200 bg-rose-50/50 px-3 py-3 text-center text-xs leading-5 text-rose-600">
+                Agrega viajeros y conserva su información lista para tus
+                próximos itinerarios.
+              </p>
+            </SideCard>
+
+            <SideCard title="Clientes recientes" icon={<FaUsers />}>
+              {recentClients.length === 0 ? (
+                <p className="text-sm text-slate-400">Aún no hay clientes.</p>
+              ) : (
+                <div className="space-y-2">
+                  {recentClients.map((client) => (
+                    <button
+                      key={client.id}
+                      type="button"
+                      onClick={() => openEditModal(client)}
+                      className="flex w-full items-center gap-3 rounded-xl p-1.5 text-left transition hover:bg-rose-50"
+                    >
+                      <Avatar name={client.full_name} small />
+                      <div className="min-w-0">
+                        <p className="truncate text-xs font-bold text-slate-800">
+                          {client.full_name}
+                        </p>
+                        <p className="truncate text-[11px] text-slate-400">
+                          {client.country || client.email || "Cliente"}
+                        </p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </SideCard>
+          </aside>
+        </div>
+      </main>
+
+      {modalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <button
+            type="button"
+            aria-label="Cerrar modal"
+            className="absolute inset-0 bg-slate-950/45 backdrop-blur-sm"
+            onClick={closeModal}
+          />
+
+          <div className="relative max-h-[92vh] w-full max-w-2xl overflow-hidden rounded-[28px] bg-white shadow-2xl">
+            <div className="flex items-start justify-between gap-4 border-b border-rose-100 bg-gradient-to-r from-[#fff3f6] to-[#fff9fa] px-6 py-5 sm:px-7">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-rose-100 text-rose-600">
+                  {editingClient ? <FaEdit /> : <FaUserPlus />}
+                </div>
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-rose-500">
+                    {editingClient ? "Actualizar cliente" : "Nuevo cliente"}
+                  </p>
+                  <h2 className="mt-1 text-xl font-black text-slate-900">
+                    {editingClient
+                      ? "Editar información"
+                      : "Agregar cliente"}
+                  </h2>
+                </div>
               </div>
 
               <button
                 type="button"
-                onClick={openCreateModal}
-                className="group inline-flex items-center justify-center gap-3 bg-white text-[#0f172a] px-5 py-3.5 rounded-2xl font-bold shadow-lg shadow-black/10 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 whitespace-nowrap"
+                aria-label="Cerrar"
+                onClick={closeModal}
+                disabled={saving}
+                className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-slate-400 shadow-sm transition hover:text-slate-700 disabled:opacity-50"
               >
-                <span className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-500 text-white flex items-center justify-center">
-                  <FaPlus className="text-xs" />
-                </span>
-
-                Nuevo cliente
-
-                <FaArrowRight className="text-xs text-blue-600 group-hover:translate-x-1 transition-transform" />
+                <FaTimes />
               </button>
-
-            </div>
-          </div>
-        </section>
-
-        {/* =====================================================
-            STATS
-        ====================================================== */}
-        <section className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-7">
-
-          <StatCard
-            icon={<FaUsers />}
-            label="Total clientes"
-            value={clients.length}
-            description="Registrados"
-            accent="blue"
-          />
-
-          <StatCard
-            icon={<FaEnvelope />}
-            label="Con correo"
-            value={clientsWithEmail}
-            description="Contacto disponible"
-            accent="cyan"
-          />
-
-          <StatCard
-            icon={<FaPhone />}
-            label="Con teléfono"
-            value={clientsWithPhone}
-            description="Contacto disponible"
-            accent="sky"
-          />
-
-          <StatCard
-            icon={<FaGlobeAmericas />}
-            label="Países"
-            value={countriesCount}
-            description="Procedencias registradas"
-            accent="slate"
-          />
-
-        </section>
-
-        {/* =====================================================
-            SEARCH
-        ====================================================== */}
-        <section className="bg-white border border-slate-200/80 rounded-2xl shadow-sm p-4 mb-6">
-
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-
-            <div className="relative flex-1 max-w-xl">
-
-              <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm" />
-
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar por nombre, correo, teléfono o país..."
-                className="w-full pl-11 pr-10 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder:text-slate-400 outline-none transition-all focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
-              />
-
-              {search && (
-                <button
-                  type="button"
-                  onClick={() => setSearch("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition"
-                >
-                  <FaTimes className="text-xs" />
-                </button>
-              )}
-
             </div>
 
-            <div className="flex items-center gap-2 text-sm text-slate-500">
-              <span className="w-2 h-2 rounded-full bg-emerald-500" />
-
-              {filteredClients.length}{" "}
-              {filteredClients.length === 1
-                ? "cliente encontrado"
-                : "clientes encontrados"}
-            </div>
-
-          </div>
-        </section>
-
-        {/* =====================================================
-            ERROR
-        ====================================================== */}
-        {error && !modalOpen && (
-          <div className="mb-6 flex items-start gap-3 rounded-2xl bg-red-50 border border-red-200 px-4 py-4 text-sm text-red-700">
-
-            <div className="w-8 h-8 shrink-0 rounded-lg bg-red-100 flex items-center justify-center font-bold">
-              !
-            </div>
-
-            <div>
-              <p className="font-bold">
-                Ocurrió un problema
-              </p>
-
-              <p className="mt-0.5 text-red-600">
-                {error}
-              </p>
-            </div>
-
-          </div>
-        )}
-
-        {/* =====================================================
-            DIRECTORY
-        ====================================================== */}
-        <section className="bg-white border border-slate-200/80 rounded-[24px] shadow-sm overflow-hidden">
-
-          <div className="px-5 sm:px-6 py-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-
-            <div>
-              <h2 className="text-lg font-bold text-slate-900">
-                Directorio de clientes
-              </h2>
-
-              <p className="text-sm text-slate-500 mt-1">
-                Información de contacto y datos de tus viajeros.
-              </p>
-            </div>
-
-            {search && (
-              <div className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-blue-50 text-blue-700 text-xs font-semibold">
-                <FaSearch />
-                Filtrando: "{search}"
-              </div>
-            )}
-
-          </div>
-
-          {loading ? (
-            <ClientsSkeleton />
-          ) : filteredClients.length === 0 ? (
-            <EmptyState
-              searching={Boolean(search)}
-              onCreate={openCreateModal}
-            />
-          ) : (
-            <>
-              {/* =================================================
-                  DESKTOP TABLE
-              ================================================== */}
-              <div className="hidden md:block overflow-x-auto">
-
-                <table className="w-full">
-
-                  <thead>
-                    <tr className="bg-slate-50/80 border-b border-slate-100">
-
-                      <th className="text-left px-6 py-4 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">
-                        Cliente
-                      </th>
-
-                      <th className="text-left px-6 py-4 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">
-                        Contacto
-                      </th>
-
-                      <th className="text-left px-6 py-4 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">
-                        Ubicación
-                      </th>
-
-                      <th className="text-right px-6 py-4 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">
-                        Acciones
-                      </th>
-
-                    </tr>
-                  </thead>
-
-                  <tbody>
-
-                    {filteredClients.map((client) => (
-                      <tr
-                        key={client.id}
-                        className="group border-b border-slate-100 last:border-0 hover:bg-blue-50/30 transition-colors"
-                      >
-
-                        {/* CLIENT */}
-                        <td className="px-6 py-5">
-
-                          <div className="flex items-center gap-3.5">
-
-                            <div className="relative shrink-0">
-
-                              <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-blue-600 to-cyan-500 flex items-center justify-center text-white font-black text-sm shadow-sm">
-                                {getInitials(client.full_name)}
-                              </div>
-
-                              <span className="absolute -right-0.5 -bottom-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white" />
-
-                            </div>
-
-                            <div className="min-w-0">
-
-                              <p className="font-bold text-slate-900 truncate">
-                                {client.full_name}
-                              </p>
-
-                              <p className="text-xs text-slate-400 mt-0.5">
-                                Cliente registrado
-                              </p>
-
-                            </div>
-
-                          </div>
-
-                        </td>
-
-                        {/* CONTACT */}
-                        <td className="px-6 py-5">
-
-                          <div className="space-y-1.5">
-
-                            {client.email ? (
-                              <div className="flex items-center gap-2 text-sm text-slate-600">
-
-                                <FaEnvelope className="text-[11px] text-blue-500 shrink-0" />
-
-                                <span className="truncate max-w-[240px]">
-                                  {client.email}
-                                </span>
-
-                              </div>
-                            ) : (
-                              <div className="text-sm text-slate-400">
-                                Sin correo
-                              </div>
-                            )}
-
-                            {client.phone && (
-                              <div className="flex items-center gap-2 text-xs text-slate-400">
-
-                                <FaPhone className="text-[10px]" />
-
-                                {client.phone}
-
-                              </div>
-                            )}
-
-                          </div>
-
-                        </td>
-
-                        {/* COUNTRY */}
-                        <td className="px-6 py-5">
-
-                          {client.country ? (
-                            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-sm">
-
-                              <FaGlobeAmericas className="text-xs text-cyan-600" />
-
-                              {client.country}
-
-                            </div>
-                          ) : (
-                            <span className="text-sm text-slate-400">
-                              Sin especificar
-                            </span>
-                          )}
-
-                        </td>
-
-                        {/* ACTIONS */}
-                        <td className="px-6 py-5">
-
-                          <div className="flex justify-end gap-2">
-
-                            <button
-                              type="button"
-                              onClick={() => openEditModal(client)}
-                              className="w-10 h-10 rounded-xl border border-slate-200 bg-white text-slate-500 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 flex items-center justify-center transition-all"
-                              title="Editar cliente"
-                            >
-                              <FaEdit className="text-sm" />
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => handleDelete(client.id)}
-                              disabled={deletingId === client.id}
-                              className="w-10 h-10 rounded-xl border border-slate-200 bg-white text-slate-500 hover:text-red-600 hover:border-red-200 hover:bg-red-50 flex items-center justify-center transition-all disabled:opacity-50"
-                              title="Eliminar cliente"
-                            >
-                              {deletingId === client.id ? (
-                                <span className="w-4 h-4 rounded-full border-2 border-slate-300 border-t-red-500 animate-spin" />
-                              ) : (
-                                <FaTrash className="text-sm" />
-                              )}
-                            </button>
-
-                          </div>
-
-                        </td>
-
-                      </tr>
-                    ))}
-
-                  </tbody>
-
-                </table>
-
-              </div>
-
-              {/* =================================================
-                  MOBILE
-              ================================================== */}
-              <div className="md:hidden divide-y divide-slate-100">
-
-                {filteredClients.map((client) => (
-                  <div
-                    key={client.id}
-                    className="p-5 hover:bg-slate-50 transition"
-                  >
-
-                    <div className="flex items-start justify-between gap-4">
-
-                      <div className="flex items-center gap-3 min-w-0">
-
-                        <div className="w-11 h-11 shrink-0 rounded-2xl bg-gradient-to-br from-blue-600 to-cyan-500 flex items-center justify-center text-white font-black text-sm">
-                          {getInitials(client.full_name)}
-                        </div>
-
-                        <div className="min-w-0">
-
-                          <h3 className="font-bold text-slate-900 truncate">
-                            {client.full_name}
-                          </h3>
-
-                          {client.country && (
-                            <p className="text-xs text-slate-400 mt-1 flex items-center gap-1.5">
-
-                              <FaGlobeAmericas className="text-cyan-500" />
-
-                              {client.country}
-
-                            </p>
-                          )}
-
-                        </div>
-
-                      </div>
-
-                      <div className="flex gap-1 shrink-0">
-
-                        <button
-                          type="button"
-                          onClick={() => openEditModal(client)}
-                          className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center"
-                        >
-                          <FaEdit className="text-xs" />
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(client.id)}
-                          disabled={deletingId === client.id}
-                          className="w-9 h-9 rounded-xl bg-red-50 text-red-500 flex items-center justify-center disabled:opacity-50"
-                        >
-                          {deletingId === client.id ? (
-                            <span className="w-3.5 h-3.5 rounded-full border-2 border-red-200 border-t-red-500 animate-spin" />
-                          ) : (
-                            <FaTrash className="text-xs" />
-                          )}
-                        </button>
-
-                      </div>
-
-                    </div>
-
-                    <div className="mt-4 grid grid-cols-1 gap-2">
-
-                      {client.email && (
-                        <div className="flex items-center gap-2 text-sm text-slate-500">
-                          <FaEnvelope className="text-xs text-blue-500" />
-                          <span className="truncate">
-                            {client.email}
-                          </span>
-                        </div>
-                      )}
-
-                      {client.phone && (
-                        <div className="flex items-center gap-2 text-sm text-slate-500">
-                          <FaPhone className="text-xs text-cyan-500" />
-                          {client.phone}
-                        </div>
-                      )}
-
-                    </div>
-
-                    {client.notes && (
-                      <div className="mt-4 p-3 rounded-xl bg-slate-50 border border-slate-100">
-
-                        <div className="flex items-start gap-2">
-
-                          <FaStickyNote className="text-xs text-slate-400 mt-1" />
-
-                          <p className="text-xs text-slate-500 line-clamp-2">
-                            {client.notes}
-                          </p>
-
-                        </div>
-
-                      </div>
-                    )}
-
-                  </div>
-                ))}
-
-              </div>
-            </>
-          )}
-
-          {!loading && filteredClients.length > 0 && (
-            <div className="px-5 sm:px-6 py-4 bg-slate-50/60 border-t border-slate-100">
-              <p className="text-xs text-slate-400">
-                Mostrando{" "}
-                <span className="font-bold text-slate-600">
-                  {filteredClients.length}
-                </span>{" "}
-                de{" "}
-                <span className="font-bold text-slate-600">
-                  {clients.length}
-                </span>{" "}
-                clientes.
-              </p>
-            </div>
-          )}
-
-        </section>
-      </div>
-
-      {/* =========================================================
-          MODAL
-      ========================================================== */}
-      {modalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-
-          {/* Overlay */}
-          <div
-            className="absolute inset-0 bg-[#0f172a]/70 backdrop-blur-sm"
-            onClick={closeModal}
-          />
-
-          {/* Modal */}
-          <div className="relative bg-white w-full max-w-2xl rounded-[28px] shadow-2xl max-h-[92vh] overflow-hidden">
-
-            {/* =================================================
-                MODAL HEADER
-            ================================================== */}
-            <div className="relative overflow-hidden bg-gradient-to-br from-[#0f172a] via-[#12356b] to-[#087e9d] px-6 sm:px-8 py-6">
-
-              <div className="absolute -right-12 -top-16 w-44 h-44 rounded-full bg-cyan-400/20 blur-2xl" />
-
-              <div className="absolute -left-20 -bottom-24 w-48 h-48 rounded-full bg-blue-500/20 blur-3xl" />
-
-              <div className="relative flex items-start justify-between gap-5">
-
-                <div className="flex items-center gap-4">
-
-                  <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/10 flex items-center justify-center text-white">
-                    {editingClient ? (
-                      <FaEdit />
-                    ) : (
-                      <FaUserPlus />
-                    )}
-                  </div>
-
-                  <div>
-
-                    <p className="text-cyan-300 text-[10px] font-bold uppercase tracking-[0.16em]">
-                      {editingClient
-                        ? "Actualizar información"
-                        : "Nuevo registro"}
-                    </p>
-
-                    <h2 className="text-xl sm:text-2xl font-black text-white mt-1">
-                      {editingClient
-                        ? "Editar cliente"
-                        : "Agregar cliente"}
-                    </h2>
-
-                    <p className="text-sm text-slate-200/70 mt-1">
-                      {editingClient
-                        ? "Mantén sus datos actualizados."
-                        : "Crea un nuevo perfil de viajero."}
-                    </p>
-
-                  </div>
-
-                </div>
-
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  disabled={saving}
-                  className="w-10 h-10 shrink-0 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 text-white flex items-center justify-center transition disabled:opacity-50"
-                >
-                  <FaTimes />
-                </button>
-
-              </div>
-
-            </div>
-
-            {/* =================================================
-                FORM
-            ================================================== */}
             <form
               onSubmit={handleSubmit}
-              className="p-6 sm:p-8 overflow-y-auto max-h-[calc(92vh-132px)]"
+              className="max-h-[calc(92vh-90px)] overflow-y-auto p-6 sm:p-7"
             >
-
-              {/* ERROR */}
               {error && (
-                <div className="mb-6 flex items-start gap-3 rounded-2xl bg-red-50 border border-red-200 p-4 text-sm text-red-700">
-
-                  <div className="w-7 h-7 shrink-0 rounded-lg bg-red-100 flex items-center justify-center font-bold">
-                    !
-                  </div>
-
-                  <div>
-                    <p className="font-bold">
-                      No se pudo completar la operación
-                    </p>
-
-                    <p className="mt-0.5 text-red-600">
-                      {error}
-                    </p>
-                  </div>
-
+                <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {error}
                 </div>
               )}
 
-              {/* =================================================
-                  SECTION 01
-              ================================================== */}
-              <div className="mb-8">
-
-                <div className="flex items-center gap-3 mb-5">
-
-                  <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-[10px] font-black">
-                    01
-                  </div>
-
-                  <div>
-                    <h3 className="font-bold text-slate-900">
-                      Información básica
-                    </h3>
-
-                    <p className="text-xs text-slate-400 mt-0.5">
-                      Identifica al viajero.
-                    </p>
-                  </div>
-
-                </div>
-
-                <div>
-
-                  <label className="block text-sm font-bold text-slate-700 mb-2">
-                    Nombre completo
-                    <span className="text-blue-600 ml-1">
-                      *
-                    </span>
-                  </label>
-
+              <div className="grid gap-5 sm:grid-cols-2">
+                <FormField
+                  label="Nombre completo"
+                  required
+                  className="sm:col-span-2"
+                >
                   <div className="relative">
-
-                    <FaUser className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm" />
-
+                    <FaUser className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-slate-400" />
                     <input
                       type="text"
                       value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      placeholder="Ej. Juan Pérez"
-                      required
+                      onChange={(event) => setFullName(event.target.value)}
+                      placeholder="Ej. Camila Mendoza"
                       autoFocus
-                      className="w-full pl-11 pr-4 py-3.5 rounded-2xl border border-slate-200 bg-slate-50 text-sm text-slate-800 placeholder:text-slate-400 outline-none transition-all focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                      required
+                      className={inputClass}
                     />
-
                   </div>
+                </FormField>
 
-                </div>
-
-              </div>
-
-              {/* =================================================
-                  SECTION 02
-              ================================================== */}
-              <div className="mb-8">
-
-                <div className="flex items-center gap-3 mb-5">
-
-                  <div className="w-8 h-8 rounded-xl bg-cyan-50 text-cyan-600 flex items-center justify-center text-[10px] font-black">
-                    02
-                  </div>
-
-                  <div>
-                    <h3 className="font-bold text-slate-900">
-                      Datos de contacto
-                    </h3>
-
-                    <p className="text-xs text-slate-400 mt-0.5">
-                      ¿Cómo puedes comunicarte con él?
-                    </p>
-                  </div>
-
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-
-                  {/* EMAIL */}
-                  <div>
-
-                    <label className="block text-sm font-bold text-slate-700 mb-2">
-                      Correo electrónico
-                    </label>
-
-                    <div className="relative">
-
-                      <FaEnvelope className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm" />
-
-                      <input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="cliente@email.com"
-                        className="w-full pl-11 pr-4 py-3.5 rounded-2xl border border-slate-200 bg-slate-50 text-sm text-slate-800 placeholder:text-slate-400 outline-none transition-all focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
-                      />
-
-                    </div>
-
-                  </div>
-
-                  {/* PHONE */}
-                  <div>
-
-                    <label className="block text-sm font-bold text-slate-700 mb-2">
-                      Teléfono
-                    </label>
-
-                    <div className="relative">
-
-                      <FaPhone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm" />
-
-                      <input
-                        type="text"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        placeholder="+1 809 000 0000"
-                        className="w-full pl-11 pr-4 py-3.5 rounded-2xl border border-slate-200 bg-slate-50 text-sm text-slate-800 placeholder:text-slate-400 outline-none transition-all focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
-                      />
-
-                    </div>
-
-                  </div>
-
-                </div>
-
-              </div>
-
-              {/* =================================================
-                  SECTION 03
-              ================================================== */}
-              <div className="mb-8">
-
-                <div className="flex items-center gap-3 mb-5">
-
-                  <div className="w-8 h-8 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center text-[10px] font-black">
-                    03
-                  </div>
-
-                  <div>
-                    <h3 className="font-bold text-slate-900">
-                      Perfil del viajero
-                    </h3>
-
-                    <p className="text-xs text-slate-400 mt-0.5">
-                      Información útil para futuras propuestas.
-                    </p>
-                  </div>
-
-                </div>
-
-                {/* COUNTRY */}
-                <div className="mb-5">
-
-                  <label className="block text-sm font-bold text-slate-700 mb-2">
-                    País
-                  </label>
-
+                <FormField label="Correo electrónico">
                   <div className="relative">
+                    <FaEnvelope className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-slate-400" />
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(event) => setEmail(event.target.value)}
+                      placeholder="cliente@email.com"
+                      className={inputClass}
+                    />
+                  </div>
+                </FormField>
 
-                    <FaGlobeAmericas className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm" />
+                <FormField label="Teléfono">
+                  <div className="relative">
+                    <FaPhone className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-slate-400" />
+                    <input
+                      type="text"
+                      value={phone}
+                      onChange={(event) => setPhone(event.target.value)}
+                      placeholder="+1 809 000 0000"
+                      className={inputClass}
+                    />
+                  </div>
+                </FormField>
 
+                <FormField label="País" className="sm:col-span-2">
+                  <div className="relative">
+                    <FaGlobeAmericas className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-slate-400" />
                     <input
                       type="text"
                       value={country}
-                      onChange={(e) => setCountry(e.target.value)}
+                      onChange={(event) => setCountry(event.target.value)}
                       placeholder="Ej. República Dominicana"
-                      className="w-full pl-11 pr-4 py-3.5 rounded-2xl border border-slate-200 bg-slate-50 text-sm text-slate-800 placeholder:text-slate-400 outline-none transition-all focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                      className={inputClass}
                     />
-
                   </div>
+                </FormField>
 
-                </div>
-
-                {/* NOTES */}
-                <div>
-
-                  <label className="block text-sm font-bold text-slate-700 mb-2">
-                    Notas y preferencias
-                  </label>
-
+                <FormField
+                  label="Notas y preferencias"
+                  className="sm:col-span-2"
+                >
                   <div className="relative">
-
-                    <FaStickyNote className="absolute left-4 top-4 text-slate-400 text-sm" />
-
+                    <FaStickyNote className="absolute left-4 top-4 text-sm text-slate-400" />
                     <textarea
                       value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      placeholder="Preferencias, observaciones, destinos favoritos, restricciones, tipo de viaje, etc."
+                      onChange={(event) => setNotes(event.target.value)}
+                      placeholder="Preferencias, destinos favoritos, observaciones..."
                       rows={5}
-                      className="w-full pl-11 pr-4 py-3.5 rounded-2xl border border-slate-200 bg-slate-50 text-sm text-slate-800 placeholder:text-slate-400 outline-none resize-none transition-all focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                      className={`${inputClass} resize-none`}
                     />
-
                   </div>
-
-                  <p className="text-[11px] text-slate-400 mt-2">
-                    Esta información puede ayudarte a preparar
-                    recomendaciones más personalizadas.
-                  </p>
-
-                </div>
-
+                </FormField>
               </div>
 
-              {/* =================================================
-                  INFO CARD
-              ================================================== */}
-              <div className="mb-7 relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-100 p-4">
-
-                <div className="absolute -right-8 -top-8 w-24 h-24 rounded-full bg-cyan-200/30 blur-xl" />
-
-                <div className="relative flex items-start gap-3">
-
-                  <div className="w-9 h-9 shrink-0 rounded-xl bg-white text-blue-600 shadow-sm flex items-center justify-center">
-                    <FaUsers className="text-sm" />
-                  </div>
-
-                  <div>
-
-                    <p className="text-sm font-bold text-slate-800">
-                      Información útil para NIA
-                    </p>
-
-                    <p className="text-xs text-slate-500 mt-1 leading-5">
-                      Las preferencias y notas del cliente pueden
-                      servir como contexto para preparar futuras
-                      propuestas de viaje.
-                    </p>
-
-                  </div>
-
-                </div>
-
-              </div>
-
-              {/* =================================================
-                  ACTIONS
-              ================================================== */}
-              <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2 border-t border-slate-100">
-
+              <div className="mt-7 flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:justify-end">
                 <button
                   type="button"
                   onClick={closeModal}
                   disabled={saving}
-                  className="w-full sm:w-auto px-5 py-3.5 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold text-sm hover:bg-slate-50 transition disabled:opacity-50"
+                  className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
                 >
                   Cancelar
                 </button>
@@ -1063,30 +701,22 @@ export default function Clients() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white font-bold text-sm shadow-lg shadow-blue-500/20 transition-all hover:-translate-y-0.5 disabled:opacity-60 disabled:hover:translate-y-0"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-rose-500 to-pink-500 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-rose-500/20 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-
                   {saving ? (
                     <>
-                      <span className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
                       Guardando...
                     </>
                   ) : (
                     <>
                       <FaPlus className="text-xs" />
-
-                      {editingClient
-                        ? "Guardar cambios"
-                        : "Crear cliente"}
+                      {editingClient ? "Guardar cambios" : "Crear cliente"}
                     </>
                   )}
-
                 </button>
-
               </div>
-
             </form>
-
           </div>
         </div>
       )}
@@ -1094,129 +724,196 @@ export default function Clients() {
   );
 }
 
-/* =============================================================
-   STAT CARD
-============================================================= */
+const inputClass =
+  "w-full rounded-xl border border-slate-200 bg-slate-50 py-3.5 pl-11 pr-4 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-rose-300 focus:bg-white focus:ring-4 focus:ring-rose-100";
 
-function StatCard({
+function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return fallback;
+}
+
+function percentage(value: number, total: number) {
+  if (!total) return "0%";
+  return `${Math.round((value / total) * 100)}%`;
+}
+
+function getInitials(name: string) {
+  const cleanName = name?.trim();
+
+  if (!cleanName) return "CL";
+
+  const parts = cleanName.split(/\s+/);
+
+  if (parts.length === 1) {
+    return parts[0].charAt(0).toUpperCase();
+  }
+
+  return (
+    parts[0].charAt(0) + parts[parts.length - 1].charAt(0)
+  ).toUpperCase();
+}
+
+function MetricCard({
   icon,
   label,
   value,
-  description,
-  accent,
+  detail,
 }: {
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
   value: number;
-  description: string;
-  accent: "blue" | "cyan" | "sky" | "slate";
+  detail: string;
 }) {
-  const styles = {
-    blue: {
-      icon: "bg-blue-50 text-blue-600",
-      dot: "bg-blue-500",
-    },
-    cyan: {
-      icon: "bg-cyan-50 text-cyan-600",
-      dot: "bg-cyan-500",
-    },
-    sky: {
-      icon: "bg-sky-50 text-sky-600",
-      dot: "bg-sky-500",
-    },
-    slate: {
-      icon: "bg-slate-100 text-slate-600",
-      dot: "bg-slate-500",
-    },
-  };
-
-  const style = styles[accent];
-
   return (
-    <div className="group bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
-
-      <div className="flex items-start justify-between gap-3">
-
-        <div
-          className={`w-10 h-10 rounded-xl flex items-center justify-center ${style.icon}`}
-        >
+    <article className="rounded-2xl border border-rose-100 bg-white p-4 shadow-[0_8px_30px_rgba(148,75,97,0.06)] sm:p-5">
+      <div className="flex items-center gap-3">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-50 to-pink-100 text-lg text-rose-500">
           {icon}
         </div>
-
-        <span
-          className={`w-2 h-2 rounded-full ${style.dot} opacity-70`}
-        />
-
-      </div>
-
-      <div className="mt-4">
-
-        <p className="text-xs font-semibold text-slate-400">
-          {label}
-        </p>
-
-        <div className="flex items-end gap-2 mt-1">
-
-          <span className="text-2xl sm:text-3xl font-black text-slate-900">
-            {value}
-          </span>
-
+        <div className="min-w-0">
+          <p className="truncate text-xs font-semibold text-slate-400">
+            {label}
+          </p>
+          <div className="mt-0.5 flex items-end gap-2">
+            <strong className="text-2xl font-black leading-none text-slate-900">
+              {value}
+            </strong>
+            <span className="text-[10px] font-bold text-rose-400">
+              {detail}
+            </span>
+          </div>
         </div>
-
-        <p className="text-[11px] text-slate-400 mt-1">
-          {description}
-        </p>
-
       </div>
+    </article>
+  );
+}
 
+function Avatar({
+  name,
+  small = false,
+}: {
+  name: string;
+  small?: boolean;
+}) {
+  return (
+    <div
+      className={`${
+        small ? "h-9 w-9 text-[11px]" : "h-11 w-11 text-xs"
+      } flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-rose-100 to-pink-50 font-black text-rose-500 ring-1 ring-rose-100`}
+    >
+      {getInitials(name)}
     </div>
   );
 }
 
-/* =============================================================
-   LOADING SKELETON
-============================================================= */
+function ContactLine({
+  icon,
+  text,
+}: {
+  icon: ReactNode;
+  text: string;
+}) {
+  return (
+    <div className="flex max-w-[260px] items-center gap-2 text-xs text-slate-500">
+      <span className="shrink-0 text-[10px] text-slate-400">{icon}</span>
+      <span className="truncate">{text}</span>
+    </div>
+  );
+}
+
+function TableHeader({ children }: { children: ReactNode }) {
+  return (
+    <th className="px-5 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+      {children}
+    </th>
+  );
+}
+
+function SideCard({
+  title,
+  icon,
+  children,
+}: {
+  title: string;
+  icon: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <section className="rounded-[22px] border border-rose-100 bg-white p-4 shadow-[0_10px_35px_rgba(148,75,97,0.06)]">
+      <div className="mb-4 flex items-center gap-3">
+        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-rose-50 text-sm text-rose-500">
+          {icon}
+        </div>
+        <h2 className="text-sm font-black text-slate-900">{title}</h2>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function FilterChip({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-full px-3 py-1.5 text-[11px] font-bold transition ${
+        active
+          ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-sm"
+          : "bg-slate-50 text-slate-500 hover:bg-rose-50 hover:text-rose-600"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function FormField({
+  label,
+  required = false,
+  className = "",
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <label className={className}>
+      <span className="mb-2 block text-sm font-bold text-slate-700">
+        {label}
+        {required && <span className="ml-1 text-rose-500">*</span>}
+      </span>
+      {children}
+    </label>
+  );
+}
 
 function ClientsSkeleton() {
   return (
-    <div className="divide-y divide-slate-100">
-
-      {[1, 2, 3, 4].map((item) => (
-        <div
-          key={item}
-          className="px-6 py-5 animate-pulse"
-        >
-
-          <div className="flex items-center gap-4">
-
-            <div className="w-11 h-11 rounded-2xl bg-slate-200" />
-
-            <div className="flex-1">
-
-              <div className="h-4 bg-slate-200 rounded-lg w-40 mb-2" />
-
-              <div className="h-3 bg-slate-100 rounded-lg w-24" />
-
-            </div>
-
-            <div className="hidden sm:block w-32 h-4 bg-slate-100 rounded-lg" />
-
-            <div className="hidden sm:block w-24 h-4 bg-slate-100 rounded-lg" />
-
-            <div className="w-20 h-9 bg-slate-100 rounded-xl" />
-
-          </div>
-
-        </div>
-      ))}
-
+    <div className="animate-pulse p-5">
+      <div className="space-y-3">
+        {Array.from({ length: 6 }).map((_, index) => (
+          <div
+            key={index}
+            className="h-16 rounded-2xl bg-gradient-to-r from-slate-100 to-rose-50"
+          />
+        ))}
+      </div>
     </div>
   );
 }
-
-/* =============================================================
-   EMPTY STATE
-============================================================= */
 
 function EmptyState({
   searching,
@@ -1226,42 +923,31 @@ function EmptyState({
   onCreate: () => void;
 }) {
   return (
-    <div className="px-6 py-20 text-center">
-
-      <div className="relative w-20 h-20 mx-auto mb-6">
-
-        <div className="absolute inset-0 rounded-[24px] bg-blue-100 animate-pulse" />
-
-        <div className="relative w-20 h-20 rounded-[24px] bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-100 flex items-center justify-center">
-          <FaUsers className="text-2xl text-blue-500" />
-        </div>
-
+    <div className="px-6 py-16 text-center">
+      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-rose-50 text-2xl text-rose-500">
+        <FaUsers />
       </div>
 
-      <h3 className="text-lg font-black text-slate-900">
-        {searching
-          ? "No encontramos clientes"
-          : "Todavía no tienes clientes"}
+      <h3 className="mt-5 text-lg font-black text-slate-900">
+        {searching ? "No encontramos clientes" : "Aún no tienes clientes"}
       </h3>
 
-      <p className="text-sm text-slate-500 mt-2 max-w-md mx-auto leading-6">
+      <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
         {searching
-          ? "Prueba con otro nombre, correo, teléfono o país."
-          : "Agrega tu primer cliente y comienza a construir una base de viajeros para tus próximas propuestas."}
+          ? "Prueba con otro término de búsqueda o cambia el filtro de país."
+          : "Agrega tu primer cliente para comenzar a organizar sus datos y preferencias."}
       </p>
 
       {!searching && (
         <button
           type="button"
           onClick={onCreate}
-          className="mt-6 inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-bold text-sm shadow-lg shadow-blue-500/20 hover:-translate-y-0.5 transition-all"
+          className="mt-5 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-rose-500 to-pink-500 px-5 py-3 text-sm font-bold text-white"
         >
           <FaPlus className="text-xs" />
-          Agregar primer cliente
+          Nuevo cliente
         </button>
       )}
-
     </div>
   );
 }
-

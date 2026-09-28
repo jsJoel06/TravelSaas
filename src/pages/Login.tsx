@@ -1,12 +1,7 @@
-
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import {
-  FaArrowRight,
-  FaEnvelope,
-  FaLock,
-  FaPlaneDeparture,
-} from "react-icons/fa";
+import { FaArrowRight, FaEnvelope, FaLock } from "react-icons/fa";
+
 import { loginUser } from "../service/authService";
 
 export default function Login() {
@@ -25,13 +20,16 @@ export default function Login() {
 
     try {
       await loginUser(email.trim(), password);
-      navigate("/dashboard");
+
+      navigate("/dashboard", {
+        replace: true,
+      });
     } catch (error: any) {
       setError(
         error?.response?.data?.message ||
           error?.response?.data?.error ||
           error?.message ||
-          "Correo o contraseña incorrectos."
+          "Correo o contraseña incorrectos.",
       );
     } finally {
       setLoading(false);
@@ -39,79 +37,92 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f4f7fb] flex items-center justify-center px-4 py-8">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#f4f7fb] px-4 py-8">
+      {/* =====================================================
+          FONDO
+      ===================================================== */}
 
-      {/* Fondo */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-32 -right-32 w-96 h-96 bg-blue-200/30 rounded-full blur-3xl" />
-        <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-cyan-200/25 rounded-full blur-3xl" />
+      <div className="pointer-events-none fixed inset-0 overflow-hidden">
+        <div className="absolute -right-32 -top-32 h-96 w-96 rounded-full bg-blue-200/30 blur-3xl" />
+
+        <div className="absolute -bottom-32 -left-32 h-96 w-96 rounded-full bg-cyan-200/25 blur-3xl" />
+
+        <div className="absolute left-1/2 top-1/2 h-[420px] w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-indigo-100/20 blur-3xl" />
       </div>
 
-      <div className="relative w-full max-w-[420px]">
+      <div className="relative z-10 w-full max-w-[420px]">
+        {/* =====================================================
+            LOGO
+        ===================================================== */}
 
-        {/* Logo */}
-        <div className="flex justify-center mb-7">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
-              <FaPlaneDeparture className="text-white text-base" />
-            </div>
+        <div className="mb-7 flex justify-center">
+          <div className="flex flex-col items-center">
+            <img
+              src="/logo.png"
+              alt="Travel SaaS"
+              className="h-[105px] w-auto max-w-[240px] object-contain"
+            />
 
-            <div>
-              <h2 className="text-lg font-bold text-slate-900 leading-none">
-                Travel SaaS
-              </h2>
-
-              <p className="text-[11px] text-slate-400 mt-1">
-                Gestión inteligente de viajes
-              </p>
-            </div>
+            <p className="-mt-1 text-center text-[11px] font-medium tracking-wide text-slate-400">
+              Gestión inteligente de viajes
+            </p>
           </div>
         </div>
 
-        {/* Card */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-xl shadow-slate-900/5 overflow-hidden">
+        {/* =====================================================
+            CARD LOGIN
+        ===================================================== */}
 
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-900/5">
           {/* Línea superior */}
+
           <div className="h-1 bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-500" />
 
           <div className="p-7 sm:p-8">
+            {/* =================================================
+                ENCABEZADO
+            ================================================= */}
 
-            {/* Encabezado */}
             <div className="mb-7">
-              <h1 className="text-2xl font-bold text-slate-900">
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900">
                 Iniciar sesión
               </h1>
 
-              <p className="text-sm text-slate-500 mt-2">
+              <p className="mt-2 text-sm text-slate-500">
                 Accede a tu espacio de trabajo.
               </p>
             </div>
 
-            {/* Error */}
+            {/* =================================================
+                ERROR
+            ================================================= */}
+
             {error && (
               <div
                 role="alert"
                 className="mb-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3"
               >
-                <p className="text-sm text-red-700">
-                  {error}
-                </p>
+                <p className="text-sm text-red-700">{error}</p>
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-5">
+            {/* =================================================
+                FORMULARIO
+            ================================================= */}
 
-              {/* Correo */}
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {/* CORREO */}
+
               <div>
                 <label
                   htmlFor="email"
-                  className="block text-sm font-medium text-slate-700 mb-2"
+                  className="mb-2 block text-sm font-medium text-slate-700"
                 >
                   Correo electrónico
                 </label>
 
                 <div className="relative">
-                  <FaEnvelope className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm" />
+                  <FaEnvelope className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-slate-400" />
 
                   <input
                     id="email"
@@ -122,12 +133,13 @@ export default function Login() {
                     autoComplete="email"
                     required
                     disabled={loading}
-                    className="w-full h-11 rounded-lg border border-slate-300 bg-white pl-10 pr-4 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 disabled:bg-slate-50 disabled:cursor-not-allowed"
+                    className="h-11 w-full rounded-lg border border-slate-300 bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 disabled:cursor-not-allowed disabled:bg-slate-50"
                   />
                 </div>
               </div>
 
-              {/* Contraseña */}
+              {/* CONTRASEÑA */}
+
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label
@@ -137,21 +149,16 @@ export default function Login() {
                     Contraseña
                   </label>
 
-                  <button
-                    type="button"
-                    onClick={() =>
-                      alert(
-                        "La recuperación de contraseña estará disponible próximamente."
-                      )
-                    }
-                    className="text-xs font-medium text-blue-600 hover:text-blue-700 transition"
+                  <Link
+                    to="/forgot-password"
+                    className="text-xs font-medium text-blue-600 transition hover:text-blue-700"
                   >
                     ¿Olvidaste tu contraseña?
-                  </button>
+                  </Link>
                 </div>
 
                 <div className="relative">
-                  <FaLock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm" />
+                  <FaLock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-slate-400" />
 
                   <input
                     id="password"
@@ -162,20 +169,23 @@ export default function Login() {
                     autoComplete="current-password"
                     required
                     disabled={loading}
-                    className="w-full h-11 rounded-lg border border-slate-300 bg-white pl-10 pr-4 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 disabled:bg-slate-50 disabled:cursor-not-allowed"
+                    className="h-11 w-full rounded-lg border border-slate-300 bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 disabled:cursor-not-allowed disabled:bg-slate-50"
                   />
                 </div>
               </div>
 
-              {/* Botón */}
+              {/* =================================================
+                  BOTÓN LOGIN
+              ================================================= */}
+
               <button
                 type="submit"
                 disabled={loading}
-                className="group w-full h-11 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-500 text-white text-sm font-semibold flex items-center justify-center gap-2 shadow-md shadow-blue-500/20 transition-all hover:from-blue-700 hover:to-cyan-600 hover:shadow-lg hover:shadow-blue-500/25 active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
+                className="group flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-500 text-sm font-semibold text-white shadow-md shadow-blue-500/20 transition-all hover:from-blue-700 hover:to-cyan-600 hover:shadow-lg hover:shadow-blue-500/25 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {loading ? (
                   <>
-                    <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
                     Iniciando sesión...
                   </>
                 ) : (
@@ -187,7 +197,10 @@ export default function Login() {
               </button>
             </form>
 
-            {/* Registro */}
+            {/* =================================================
+                SEPARADOR
+            ================================================= */}
+
             <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-slate-200" />
@@ -200,21 +213,27 @@ export default function Login() {
               </div>
             </div>
 
+            {/* =================================================
+                REGISTRO
+            ================================================= */}
+
             <Link
               to="/register"
-              className="w-full h-11 rounded-lg border border-slate-300 text-slate-700 text-sm font-semibold flex items-center justify-center transition-all hover:bg-slate-50 hover:border-slate-400"
+              className="flex h-11 w-full items-center justify-center rounded-lg border border-slate-300 text-sm font-semibold text-slate-700 transition-all hover:border-slate-400 hover:bg-slate-50"
             >
               Crear una cuenta
             </Link>
           </div>
         </div>
 
-        {/* Footer */}
-        <p className="text-center text-xs text-slate-400 mt-6">
+        {/* =====================================================
+            FOOTER
+        ===================================================== */}
+
+        <p className="mt-6 text-center text-xs text-slate-400">
           Travel SaaS · Gestión inteligente de viajes
         </p>
       </div>
     </div>
   );
 }
-

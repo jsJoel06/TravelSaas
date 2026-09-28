@@ -3,6 +3,9 @@ import type { ReactNode } from "react";
 
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
+
 import Dashboard from "./pages/Dashboard";
 import Clients from "./pages/Clients";
 import Itineraries from "./pages/Itineraries";
@@ -12,20 +15,36 @@ import NewItinerary from "./pages/NewItinerary";
 import ItineraryDetail from "./pages/ItineraryDetail";
 import { useAuth } from "./context/AuthContext";
 import AiPlanner from "./pages/AiPlanner";
+
 import Destinos from "./pages/Destinos/Destinos";
 import NuevoDestino from "./pages/Destinos/NuevoDestino";
 import DetalleDestino from "./pages/Destinos/DetalleDestino";
+
 import Plantillas from "./pages/Plantillas/Plantillas";
 import NuevaPlantilla from "./pages/Plantillas/NuevaPlantilla";
-import Configuracion from "./pages/Configuracion/Configuracion";
 
-function ProtectedRoute({ children }: { children: ReactNode }) {
+import Configuracion from "./pages/Configuracion";
+import Agenda from "./pages/Agenda";
+import Reservations from "./pages/Reservations";
+import Resources from "./pages/Resources";
+
+// =========================================================
+// RUTA PROTEGIDA
+// =========================================================
+
+function ProtectedRoute({
+  children,
+}: {
+  children: ReactNode;
+}) {
   const { user, loading } = useAuth();
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <p className="text-slate-500">Cargando...</p>
+      <div className="flex min-h-screen items-center justify-center bg-slate-50">
+        <p className="text-slate-500">
+          Cargando...
+        </p>
       </div>
     );
   }
@@ -37,14 +56,54 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
   return children;
 }
 
+// =========================================================
+// APP
+// =========================================================
+
 function App() {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      {/* =====================================================
+          RUTA PRINCIPAL
+      ===================================================== */}
 
-      <Route path="/login" element={<Login />} />
+      <Route
+        path="/"
+        element={
+          <Navigate
+            to="/dashboard"
+            replace
+          />
+        }
+      />
 
-      <Route path="/register" element={<Register />} />
+      {/* =====================================================
+          RUTAS PÚBLICAS
+      ===================================================== */}
+
+      <Route
+        path="/login"
+        element={<Login />}
+      />
+
+      <Route
+        path="/register"
+        element={<Register />}
+      />
+
+      <Route
+        path="/forgot-password"
+        element={<ForgotPassword />}
+      />
+
+      <Route
+        path="/reset-password"
+        element={<ResetPassword />}
+      />
+
+      {/* =====================================================
+          RUTAS PROTEGIDAS
+      ===================================================== */}
 
       <Route
         element={
@@ -53,34 +112,120 @@ function App() {
           </ProtectedRoute>
         }
       >
-        <Route path="/dashboard" element={<Dashboard />} />
+        {/* Dashboard */}
 
-        <Route path="/clientes" element={<Clients />} />
+        <Route
+          path="/dashboard"
+          element={<Dashboard />}
+        />
 
-        <Route path="/itinerarios" element={<Itineraries />} />
+        {/* Clientes */}
 
-        <Route path="/itinerarios/nuevo" element={<NewItinerary />} />
+        <Route
+          path="/clientes"
+          element={<Clients />}
+        />
 
-        <Route path="/itinerarios/:id" element={<ItineraryDetail />} />
+        {/* Itinerarios */}
 
-        <Route path="/itinerarios/ia" element={<AiPlanner />} />
+        <Route
+          path="/itinerarios"
+          element={<Itineraries />}
+        />
 
-        <Route path="/ofertas" element={<TravelOffers />} />
+        <Route
+          path="/itinerarios/nuevo"
+          element={<NewItinerary />}
+        />
 
-        <Route path="/destinos" element={<Destinos />} />
+        <Route
+          path="/itinerarios/:id"
+          element={<ItineraryDetail />}
+        />
 
-        <Route path="/destinos/nuevo" element={<NuevoDestino />} />
+        <Route
+          path="/itinerarios/ia"
+          element={<AiPlanner />}
+        />
 
-        <Route path="/destinos/:id" element={<DetalleDestino />} />
+        {/* Ofertas */}
 
-        <Route path="/plantillas" element={<Plantillas />} />
+        <Route
+          path="/ofertas"
+          element={<TravelOffers />}
+        />
 
-        <Route path="/plantillas/nueva" element={<NuevaPlantilla />} />
+        {/* Destinos */}
 
-        <Route path="/configuracion" element={<Configuracion />} />
+        <Route
+          path="/destinos"
+          element={<Destinos />}
+        />
+
+        <Route
+          path="/destinos/nuevo"
+          element={<NuevoDestino />}
+        />
+
+        <Route
+          path="/destinos/:id"
+          element={<DetalleDestino />}
+        />
+
+        {/* Plantillas */}
+
+        <Route
+          path="/plantillas"
+          element={<Plantillas />}
+        />
+
+        <Route
+          path="/plantillas/nueva"
+          element={<NuevaPlantilla />}
+        />
+
+        {/* Agenda */}
+
+        <Route
+          path="/agenda"
+          element={<Agenda />}
+        />
+
+        {/* Reservas */}
+
+        <Route
+          path="/reservas"
+          element={<Reservations />}
+        />
+
+        {/* Recursos */}
+
+        <Route
+          path="/recursos"
+          element={<Resources />}
+        />
+
+        {/* Configuración */}
+
+        <Route
+          path="/configuracion"
+          element={<Configuracion />}
+        />
       </Route>
 
-      <Route path="*" element={<Navigate to="/" replace />} />
+      {/* =====================================================
+          RUTA NO ENCONTRADA
+      ===================================================== */}
+
+      <Route
+        path="*"
+        element={
+          <Navigate
+            to="/"
+            replace
+          />
+        }
+      />
     </Routes>
   );
 }
